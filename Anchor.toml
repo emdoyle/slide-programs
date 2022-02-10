@@ -5,7 +5,7 @@ riptide_q1 = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "/Users/evanmdoyle/.config/solana/id.json"
 
 [scripts]
