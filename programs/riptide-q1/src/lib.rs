@@ -15,11 +15,31 @@ pub mod riptide_q1 {
         name: String,
         _bump: u8,
     ) -> ProgramResult {
+        // TODO: do we need to check that the account starts empty here? most likely yes
         let expense_manager = &mut ctx.accounts.expense_manager;
         let authority = &ctx.accounts.authority;
         // TODO: check if name is too large and send meaningful error code
         expense_manager.name = name;
         expense_manager.authority = authority.key();
+        Ok(())
+    }
+    pub fn create_expense_package(
+        ctx: Context<CreateExpensePackage>,
+        name: String,
+        description: String,
+        expense_manager_address: Pubkey,
+        _bump: u8,
+    ) -> ProgramResult {
+        // TODO: how to authorize a user to create an expense package?
+        // TODO: check expense package starts empty here
+        let expense_package = &mut ctx.accounts.expense_package;
+        let user = &ctx.accounts.user;
+        // TODO: check string field lengths
+        expense_package.name = name;
+        expense_package.description = description;
+        expense_package.owner = user.key();
+        // TODO: check expense manager is initialized
+        expense_package.expense_manager = expense_manager_address;
         Ok(())
     }
 }
@@ -42,11 +62,18 @@ impl ExpenseManager {
 pub struct ExpensePackage {
     pub name: String,
     pub description: String,
+    pub owner: Pubkey,
+    pub expense_manager: Pubkey,
     pub state: ExpensePackageState,
 }
 
 impl ExpensePackage {
-    const MAX_SIZE: usize = 321;
+    // name: 64
+    // description: 256
+    // owner: 32
+    // expense_manager: 32
+    // state: 1
+    const MAX_SIZE: usize = 385;
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
@@ -81,5 +108,15 @@ pub struct CreateExpenseManager<'info> {
     pub expense_manager: Account<'info, ExpenseManager>,
     #[account(mut)]
     pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(name: String, description: String, expense_manager_address: Pubkey, bump: u8)]
+pub struct CreateExpensePackage<'info> {
+    #[account(init, seeds = [b"expense_package", expense_manager_address.as_ref(), user.key().as_ref()], bump = bump, payer = user, space = ExpensePackage::MAX_SIZE + 8)]
+    pub expense_package: Account<'info, ExpensePackage>,
+    #[account(mut)]
+    pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
