@@ -14,7 +14,7 @@ function getExpenseManagerAddressAndBump(
   );
 }
 
-function getExpensePackageAddress(
+function getExpensePackageAddressAndBump(
   expenseManagerPDA: anchor.web3.PublicKey,
   owner: anchor.web3.PublicKey,
   programId: PublicKey
@@ -56,7 +56,7 @@ async function setupExpensePackage(
   user: anchor.web3.PublicKey,
   expenseManagerPDA: anchor.web3.PublicKey
 ) {
-  const [expensePackagePDA, bump] = getExpensePackageAddress(
+  const [expensePackagePDA, bump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
     user,
     program.programId
@@ -82,22 +82,28 @@ async function setupExpensePackage(
 
 async function addTransactionHash(
   program: Program<Slide>,
+  managerName: string,
   transactionHash: string,
-  user: anchor.web3.PublicKey,
-  expenseManagerPDA: anchor.web3.PublicKey
+  user: anchor.web3.PublicKey
 ) {
-  const [expensePackagePDA, bump] = getExpensePackageAddress(
+  const [expenseManagerPDA, managerBump] = getExpenseManagerAddressAndBump(
+    managerName,
+    program.programId
+  );
+  const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
     user,
     program.programId
   );
   await program.rpc.addTransactionHash(
     transactionHash,
-    expenseManagerPDA,
-    bump,
+    managerName,
+    managerBump,
+    packageBump,
     {
       accounts: {
         expensePackage: expensePackagePDA,
+        expenseManager: expenseManagerPDA,
         owner: user,
       },
     }
@@ -162,9 +168,9 @@ describe("slide", () => {
     );
     const { expensePackagePDA } = await addTransactionHash(
       program,
+      "testing manager 3",
       "faketransactionhash",
-      authority.publicKey,
-      expenseManagerPDA
+      authority.publicKey
     );
     let expensePackageData = await program.account.expensePackage.fetch(
       expensePackagePDA

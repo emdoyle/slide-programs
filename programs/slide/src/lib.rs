@@ -46,8 +46,9 @@ pub mod slide {
     pub fn add_transaction_hash(
         ctx: Context<AddTransactionHash>,
         transaction_hash: String,
-        _expense_manager_address: Pubkey,
-        _bump: u8,
+        _manager_name: String,
+        _manager_bump: u8,
+        _package_bump: u8,
     ) -> ProgramResult {
         // TODO: check expense manager in correct state
         let expense_package = &mut ctx.accounts.expense_package;
@@ -128,9 +129,11 @@ pub struct CreateExpensePackage<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(transaction_hash: String, expense_manager_address: Pubkey, bump: u8)]
+#[instruction(transaction_hash: String, manager_name: String, manager_bump: u8, package_bump: u8)]
 pub struct AddTransactionHash<'info> {
-    #[account(mut, seeds = [b"expense_package", expense_manager_address.as_ref(), owner.key().as_ref()], bump = bump, has_one = owner)]
+    #[account(seeds = [b"expense_manager", manager_name.as_bytes()], bump = manager_bump)]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(mut, seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref()], bump = package_bump, has_one = owner)]
     pub expense_package: Account<'info, ExpensePackage>,
     pub owner: Signer<'info>,
 }
