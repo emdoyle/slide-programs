@@ -906,15 +906,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
 
 [[package]]
-name = "riptide-q1"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
- "num-derive",
- "num-traits",
-]
-
-[[package]]
 name = "rustc_version"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1010,6 +1001,15 @@ dependencies = [
  "digest 0.9.0",
  "keccak",
  "opaque-debug",
+]
+
+[[package]]
+name = "slide"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "num-derive",
+ "num-traits",
 ]
 
 [[package]]

@@ -1,12 +1,12 @@
 [package]
-name = "riptide-q1"
+name = "slide"
 version = "0.1.0"
-description = "Created with Anchor"
+description = "Solana Programs for Slide"
 edition = "2018"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "riptide_q1"
+name = "slide"
 
 [features]
 no-entrypoint = []
