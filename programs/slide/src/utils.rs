@@ -2,6 +2,8 @@ use anchor_lang::prelude::*;
 
 #[error]
 pub enum SlideError {
+    #[msg("UserData for given name already exists")]
+    UserDataAlreadyExists,
     #[msg("ExpensePackage must be in initial state to modify")]
     PackageFrozen,
     #[msg("ExpenseManager for given name already exists")]

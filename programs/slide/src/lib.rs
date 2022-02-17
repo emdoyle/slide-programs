@@ -17,6 +17,15 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 #[program]
 pub mod slide {
     use super::*;
+    pub fn initialize_user(ctx: Context<InitializeUser>, name: String, _bump: u8) -> ProgramResult {
+        let user_data = &mut ctx.accounts.user_data;
+        require!(
+            AsRef::<UserData>::as_ref(user_data) == &UserData::default(),
+            SlideError::UserDataAlreadyExists
+        );
+        user_data.name = name;
+        Ok(())
+    }
     pub fn create_expense_manager(
         ctx: Context<CreateExpenseManager>,
         name: String,
@@ -24,7 +33,7 @@ pub mod slide {
     ) -> ProgramResult {
         let expense_manager = &mut ctx.accounts.expense_manager;
         require!(
-            expense_manager.name == "" && expense_manager.authority == Pubkey::default(),
+            AsRef::<ExpenseManager>::as_ref(expense_manager) == &ExpenseManager::default(),
             SlideError::ManagerAlreadyExists
         );
         let authority = &ctx.accounts.authority;
@@ -44,7 +53,7 @@ pub mod slide {
         // TODO: how to authorize a user to create an expense package?
         let expense_package = &mut ctx.accounts.expense_package;
         require!(
-            expense_package.to_account_info().data_is_empty(),
+            AsRef::<ExpensePackage>::as_ref(expense_package) == &ExpensePackage::default(),
             SlideError::PackageAlreadyExists
         );
         let owner = &ctx.accounts.owner;
@@ -54,7 +63,7 @@ pub mod slide {
         expense_package.owner = owner.key();
         let expense_manager = &ctx.accounts.expense_manager;
         require!(
-            !expense_manager.to_account_info().data_is_empty(),
+            AsRef::<ExpenseManager>::as_ref(expense_manager) != &ExpenseManager::default(),
             SlideError::ManagerUninitialized
         );
         expense_package.expense_manager = expense_manager.key();

@@ -3,6 +3,15 @@ use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 #[instruction(name: String, bump: u8)]
+pub struct InitializeUser<'info> {
+    #[account(init, seeds = [b"user_data", user.key().as_ref()], bump = bump, payer = user, space = UserData::MAX_SIZE + 8)]
+    pub user_data: Account<'info, UserData>,
+    pub user: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(name: String, bump: u8)]
 pub struct CreateExpenseManager<'info> {
     #[account(init, seeds = [b"expense_manager", name.as_bytes()], bump = bump, payer = authority, space = ExpenseManager::MAX_SIZE + 8)]
     pub expense_manager: Account<'info, ExpenseManager>,

@@ -4,6 +4,16 @@ import { Program } from "@project-serum/anchor";
 import { Slide } from "../target/types/slide";
 import { assert, expect } from "chai";
 
+function getUserDataAddressAndBump(
+  user: PublicKey,
+  programId: PublicKey
+): [PublicKey, number] {
+  return anchor.utils.publicKey.findProgramAddressSync(
+    [Buffer.from("user_data"), user.toBuffer()],
+    programId
+  );
+}
+
 function getExpenseManagerAddressAndBump(
   name: string,
   programId: PublicKey
@@ -27,6 +37,23 @@ function getExpensePackageAddressAndBump(
     ],
     programId
   );
+}
+
+async function initializeUser(program: Program<Slide>, name: string) {
+  const walletPubkey = program.provider.wallet.publicKey;
+  const [userDataPDA, bump] = getUserDataAddressAndBump(
+    walletPubkey,
+    program.programId
+  );
+  await program.rpc.initializeUser(name, bump, {
+    accounts: {
+      userData: userDataPDA,
+      user: walletPubkey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    },
+    signers: [],
+  });
+  return { userDataPDA };
 }
 
 async function setupExpenseManager(program: Program<Slide>, name: string) {
@@ -68,7 +95,7 @@ async function setupExpensePackage(
   await program.rpc.createExpensePackage(
     name,
     description,
-    expenseManagerPDA.toString(),
+    managerName,
     managerBump,
     packageBump,
     {
@@ -118,29 +145,34 @@ describe("slide", () => {
 
   const program = anchor.workspace.Slide as Program<Slide>;
 
+  it("creates user data with correct initial values", async () => {
+    const { userDataPDA } = await initializeUser(program, "testing user data");
+    let userData = await program.account.userData.fetch(userDataPDA);
+    expect(userData.name).to.equal("testing user data");
+  });
   it("creates expense manager with correct initial values", async () => {
     const { authority, expenseManagerPDA } = await setupExpenseManager(
       program,
-      "new testing manager"
+      "testing manager"
     );
     let expenseManagerData = await program.account.expenseManager.fetch(
       expenseManagerPDA
     );
-    expect(expenseManagerData.name).to.equal("new testing manager");
+    expect(expenseManagerData.name).to.equal("testing manager");
     assert(expenseManagerData.authority.equals(authority.publicKey));
   });
 
   it("creates an expense package with correct initial values", async () => {
     const { authority, expenseManagerPDA } = await setupExpenseManager(
       program,
-      "new testing manager 2"
+      "testing manager 2"
     );
     const { expensePackagePDA } = await setupExpensePackage(
       program,
       "myexpense",
       "I bought some stuff on ebay",
       authority.publicKey,
-      "new testing manager 2"
+      "testing manager 2"
     );
     let expensePackageData = await program.account.expensePackage.fetch(
       expensePackagePDA

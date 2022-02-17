@@ -1,7 +1,20 @@
 use anchor_lang::prelude::*;
 
 #[account]
-#[derive(Default)]
+#[derive(Default, Eq, PartialEq)]
+pub struct UserData {
+    pub name: String,
+    pub expense_managers: Vec<Pubkey>,
+}
+
+impl UserData {
+    // name: 64
+    // expense_managers: 32 * 10 = 320
+    pub const MAX_SIZE: usize = 394;
+}
+
+#[account]
+#[derive(Default, Eq, PartialEq)]
 pub struct ExpenseManager {
     pub name: String,
     pub authority: Pubkey,
@@ -14,7 +27,18 @@ impl ExpenseManager {
 }
 
 #[account]
-#[derive(Default)]
+#[derive(Default, Eq, PartialEq)]
+pub struct UserExpenseData {
+    pub expense_packages: Vec<Pubkey>,
+}
+
+impl UserExpenseData {
+    // expense_packages: 32 * 10 = 320
+    pub const MAX_SIZE: usize = 320;
+}
+
+#[account]
+#[derive(Default, Eq, PartialEq)]
 pub struct ExpensePackage {
     pub name: String,
     pub description: String,
@@ -26,6 +50,7 @@ pub struct ExpensePackage {
 
 // TODO: once rent-refunds are implemented (receipts)
 //   might be able to stop storing the hashes on-chain?
+//   also storing hashes as individual accounts would allow better pay-as-you-go mechanics
 impl ExpensePackage {
     // name: 64
     // description: 256
