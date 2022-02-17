@@ -42,6 +42,24 @@ pub mod slide {
         expense_manager.authority = authority.key();
         Ok(())
     }
+    pub fn join_expense_manager(
+        ctx: Context<JoinExpenseManager>,
+        _name: String,
+        _manager_bump: u8,
+        _user_bump: u8,
+    ) -> ProgramResult {
+        let user_data = &mut ctx.accounts.user_data;
+        require!(
+            AsRef::<UserData>::as_ref(user_data) != &UserData::default(),
+            SlideError::UserUninitialized
+        );
+        let expense_manager = &ctx.accounts.expense_manager;
+        if user_data.expense_managers.contains(&expense_manager.key()) {
+            return Err(SlideError::AlreadyJoinedExpenseManager.into());
+        }
+        user_data.expense_managers.push(expense_manager.key());
+        Ok(())
+    }
     pub fn create_expense_package(
         ctx: Context<CreateExpensePackage>,
         name: String,

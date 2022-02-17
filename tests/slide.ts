@@ -40,15 +40,15 @@ function getExpensePackageAddressAndBump(
 }
 
 async function initializeUser(program: Program<Slide>, name: string) {
-  const walletPubkey = program.provider.wallet.publicKey;
+  const user = program.provider.wallet;
   const [userDataPDA, bump] = getUserDataAddressAndBump(
-    walletPubkey,
+    user.publicKey,
     program.programId
   );
   await program.rpc.initializeUser(name, bump, {
     accounts: {
       userData: userDataPDA,
-      user: walletPubkey,
+      user: user.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
     },
     signers: [],
@@ -74,6 +74,27 @@ async function setupExpenseManager(program: Program<Slide>, name: string) {
     authority,
     expenseManagerPDA,
   };
+}
+
+async function joinExpenseManager(program: Program<Slide>, name: string) {
+  const user = program.provider.wallet;
+  const [userDataPDA, userBump] = getUserDataAddressAndBump(
+    user.publicKey,
+    program.programId
+  );
+  const [expenseManagerPDA, managerBump] = getExpenseManagerAddressAndBump(
+    name,
+    program.programId
+  );
+  await program.rpc.joinExpenseManager(name, managerBump, userBump, {
+    accounts: {
+      userData: userDataPDA,
+      expenseManager: expenseManagerPDA,
+      user: user.publicKey,
+    },
+    signers: [],
+  });
+  return { userDataPDA, expenseManagerPDA };
 }
 
 async function setupExpensePackage(
@@ -161,7 +182,18 @@ describe("slide", () => {
     expect(expenseManagerData.name).to.equal("testing manager");
     assert(expenseManagerData.authority.equals(authority.publicKey));
   });
-
+  it("joins expense manager and sets correct value in user data", async () => {
+    const { expenseManagerPDA } = await setupExpenseManager(
+      program,
+      "testing another manager"
+    );
+    const { userDataPDA } = await joinExpenseManager(
+      program,
+      "testing another manager"
+    );
+    let userData = await program.account.userData.fetch(userDataPDA);
+    expect(userData.expenseManagers).to.eql([expenseManagerPDA]);
+  });
   it("creates an expense package with correct initial values", async () => {
     const { authority, expenseManagerPDA } = await setupExpenseManager(
       program,

@@ -20,6 +20,16 @@ pub struct CreateExpenseManager<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(name: String, manager_bump: u8, user_bump: u8)]
+pub struct JoinExpenseManager<'info> {
+    #[account(mut, seeds = [b"user_data", user.key().as_ref()], bump = user_bump)]
+    pub user_data: Account<'info, UserData>,
+    #[account(seeds = [b"expense_manager", name.as_bytes()], bump = manager_bump)]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    pub user: Signer<'info>,
+}
+
+#[derive(Accounts)]
 #[instruction(name: String, description: String, manager_name: String, manager_bump: u8, package_bump: u8)]
 pub struct CreateExpensePackage<'info> {
     #[account(seeds = [b"expense_manager", manager_name.as_bytes()], bump = manager_bump)]
