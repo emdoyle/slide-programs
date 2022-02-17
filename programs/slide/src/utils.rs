@@ -8,6 +8,8 @@ pub enum SlideError {
     UserUninitialized,
     #[msg("User is already a member of this expense manager")]
     AlreadyJoinedExpenseManager,
+    #[msg("User expense data already initialized for this manager")]
+    UserExpenseDataAlreadyInitialized,
     #[msg("ExpensePackage must be in initial state to modify")]
     PackageFrozen,
     #[msg("ExpenseManager for given name already exists")]

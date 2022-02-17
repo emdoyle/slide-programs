@@ -47,6 +47,7 @@ pub mod slide {
         _name: String,
         _manager_bump: u8,
         _user_bump: u8,
+        _user_expense_bump: u8,
     ) -> ProgramResult {
         let user_data = &mut ctx.accounts.user_data;
         require!(
@@ -54,10 +55,17 @@ pub mod slide {
             SlideError::UserUninitialized
         );
         let expense_manager = &ctx.accounts.expense_manager;
-        if user_data.expense_managers.contains(&expense_manager.key()) {
-            return Err(SlideError::AlreadyJoinedExpenseManager.into());
-        }
+        require!(
+            !user_data.expense_managers.contains(&expense_manager.key()),
+            SlideError::AlreadyJoinedExpenseManager
+        );
         user_data.expense_managers.push(expense_manager.key());
+        // is it necessary to do this check if already using the 'init' constraint?
+        let user_expense_data = &ctx.accounts.user_expense_data;
+        require!(
+            AsRef::<UserExpenseData>::as_ref(user_expense_data) == &UserExpenseData::default(),
+            SlideError::UserExpenseDataAlreadyInitialized
+        );
         Ok(())
     }
     pub fn create_expense_package(

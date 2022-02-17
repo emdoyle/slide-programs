@@ -24,6 +24,21 @@ function getExpenseManagerAddressAndBump(
   );
 }
 
+function getUserExpenseDataAddressAndBump(
+  expenseManagerPDA: anchor.web3.PublicKey,
+  user: anchor.web3.PublicKey,
+  programId: PublicKey
+): [PublicKey, number] {
+  return anchor.utils.publicKey.findProgramAddressSync(
+    [
+      Buffer.from("user_expense_data"),
+      expenseManagerPDA.toBuffer(),
+      user.toBuffer(),
+    ],
+    programId
+  );
+}
+
 function getExpensePackageAddressAndBump(
   expenseManagerPDA: anchor.web3.PublicKey,
   owner: anchor.web3.PublicKey,
@@ -86,15 +101,29 @@ async function joinExpenseManager(program: Program<Slide>, name: string) {
     name,
     program.programId
   );
-  await program.rpc.joinExpenseManager(name, managerBump, userBump, {
-    accounts: {
-      userData: userDataPDA,
-      expenseManager: expenseManagerPDA,
-      user: user.publicKey,
-    },
-    signers: [],
-  });
-  return { userDataPDA, expenseManagerPDA };
+  const [userExpenseDataPDA, userExpenseBump] =
+    getUserExpenseDataAddressAndBump(
+      expenseManagerPDA,
+      user.publicKey,
+      program.programId
+    );
+  await program.rpc.joinExpenseManager(
+    name,
+    managerBump,
+    userBump,
+    userExpenseBump,
+    {
+      accounts: {
+        userData: userDataPDA,
+        expenseManager: expenseManagerPDA,
+        userExpenseData: userExpenseDataPDA,
+        user: user.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      },
+      signers: [],
+    }
+  );
+  return { userDataPDA, expenseManagerPDA, userExpenseDataPDA };
 }
 
 async function setupExpensePackage(
@@ -187,12 +216,16 @@ describe("slide", () => {
       program,
       "testing another manager"
     );
-    const { userDataPDA } = await joinExpenseManager(
+    const { userDataPDA, userExpenseDataPDA } = await joinExpenseManager(
       program,
       "testing another manager"
     );
     let userData = await program.account.userData.fetch(userDataPDA);
     expect(userData.expenseManagers).to.eql([expenseManagerPDA]);
+    let userExpenseData = await program.account.userExpenseData.fetch(
+      userExpenseDataPDA
+    );
+    expect(userExpenseData.expensePackages).to.eql([]);
   });
   it("creates an expense package with correct initial values", async () => {
     const { authority, expenseManagerPDA } = await setupExpenseManager(
