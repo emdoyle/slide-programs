@@ -54,9 +54,13 @@ async function setupExpensePackage(
   name: string,
   description: string,
   user: anchor.web3.PublicKey,
-  expenseManagerPDA: anchor.web3.PublicKey
+  managerName: string
 ) {
-  const [expensePackagePDA, bump] = getExpensePackageAddressAndBump(
+  const [expenseManagerPDA, managerBump] = getExpenseManagerAddressAndBump(
+    managerName,
+    program.programId
+  );
+  const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
     user,
     program.programId
@@ -64,10 +68,12 @@ async function setupExpensePackage(
   await program.rpc.createExpensePackage(
     name,
     description,
-    expenseManagerPDA,
-    bump,
+    expenseManagerPDA.toString(),
+    managerBump,
+    packageBump,
     {
       accounts: {
+        expenseManager: expenseManagerPDA,
         expensePackage: expensePackagePDA,
         owner: user,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -82,28 +88,22 @@ async function setupExpensePackage(
 
 async function addTransactionHash(
   program: Program<Slide>,
-  managerName: string,
   transactionHash: string,
-  user: anchor.web3.PublicKey
+  user: anchor.web3.PublicKey,
+  expenseManagerPDA: anchor.web3.PublicKey
 ) {
-  const [expenseManagerPDA, managerBump] = getExpenseManagerAddressAndBump(
-    managerName,
-    program.programId
-  );
-  const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
+  const [expensePackagePDA, bump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
     user,
     program.programId
   );
   await program.rpc.addTransactionHash(
     transactionHash,
-    managerName,
-    managerBump,
-    packageBump,
+    expenseManagerPDA,
+    bump,
     {
       accounts: {
         expensePackage: expensePackagePDA,
-        expenseManager: expenseManagerPDA,
         owner: user,
       },
     }
@@ -121,26 +121,26 @@ describe("slide", () => {
   it("creates expense manager with correct initial values", async () => {
     const { authority, expenseManagerPDA } = await setupExpenseManager(
       program,
-      "testing manager"
+      "new testing manager"
     );
     let expenseManagerData = await program.account.expenseManager.fetch(
       expenseManagerPDA
     );
-    expect(expenseManagerData.name).to.equal("testing manager");
+    expect(expenseManagerData.name).to.equal("new testing manager");
     assert(expenseManagerData.authority.equals(authority.publicKey));
   });
 
   it("creates an expense package with correct initial values", async () => {
     const { authority, expenseManagerPDA } = await setupExpenseManager(
       program,
-      "testing manager 2"
+      "new testing manager 2"
     );
     const { expensePackagePDA } = await setupExpensePackage(
       program,
       "myexpense",
       "I bought some stuff on ebay",
       authority.publicKey,
-      expenseManagerPDA
+      "new testing manager 2"
     );
     let expensePackageData = await program.account.expensePackage.fetch(
       expensePackagePDA
@@ -157,20 +157,20 @@ describe("slide", () => {
   it("adds a transaction hash to expense package", async () => {
     const { authority, expenseManagerPDA } = await setupExpenseManager(
       program,
-      "testing manager 3"
+      "new testing manager 3"
     );
     await setupExpensePackage(
       program,
       "myexpense",
       "I bought some stuff on ebay",
       authority.publicKey,
-      expenseManagerPDA
+      "new testing manager 3"
     );
     const { expensePackagePDA } = await addTransactionHash(
       program,
-      "testing manager 3",
       "faketransactionhash",
-      authority.publicKey
+      authority.publicKey,
+      expenseManagerPDA
     );
     let expensePackageData = await program.account.expensePackage.fetch(
       expensePackagePDA
