@@ -122,36 +122,6 @@ async function setupExpensePackage(
   };
 }
 
-async function addTransactionHashes(
-  program: Program<Slide>,
-  nonce: number,
-  transactionHashes: string[],
-  user: anchor.web3.PublicKey,
-  expenseManagerPDA: anchor.web3.PublicKey
-) {
-  const [expensePackagePDA, bump] = getExpensePackageAddressAndBump(
-    expenseManagerPDA,
-    user,
-    nonce,
-    program.programId
-  );
-  await program.rpc.addTransactionHashes(
-    transactionHashes,
-    nonce,
-    expenseManagerPDA,
-    bump,
-    {
-      accounts: {
-        expensePackage: expensePackagePDA,
-        owner: user,
-      },
-    }
-  );
-  return {
-    expensePackagePDA,
-  };
-}
-
 describe("slide", () => {
   anchor.setProvider(anchor.Provider.env());
 
@@ -209,34 +179,4 @@ describe("slide", () => {
     expect(expensePackageData.quantity.toNumber()).to.equal(0);
     expect(expensePackageData.tokenAuthority).to.be.null;
   });
-
-  // it("adds transaction hashes to expense package", async () => {
-  //   const { authority, expenseManagerPDA } = await setupExpenseManager(
-  //     program,
-  //     "testing manager 3"
-  //   );
-  //   await joinExpenseManager(program, "testing manager 3");
-  //   await setupExpensePackage(
-  //     program,
-  //     "myexpense",
-  //     "I bought some stuff on ebay",
-  //     1,
-  //     authority.publicKey,
-  //     "testing manager 3"
-  //   );
-  //   const { expensePackagePDA } = await addTransactionHashes(
-  //     program,
-  //     1,
-  //     ["faketransactionhash", "faketransactionhash2"],
-  //     authority.publicKey,
-  //     expenseManagerPDA
-  //   );
-  //   let expensePackageData = await program.account.expensePackage.fetch(
-  //     expensePackagePDA
-  //   );
-  //   expect(expensePackageData.transactionHashes).to.eql([
-  //     "faketransactionhash",
-  //     "faketransactionhash2",
-  //   ]);
-  // });
 });

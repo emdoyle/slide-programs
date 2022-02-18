@@ -29,11 +29,3 @@ pub struct CreateExpensePackage<'info> {
     pub owner: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
-
-// #[derive(Accounts)]
-// #[instruction(transaction_hashes: Vec<String>, nonce: u8, expense_manager_address: Pubkey, bump: u8)]
-// pub struct AddTransactionHashes<'info> {
-//     #[account(mut, seeds = [b"expense_package", expense_manager_address.as_ref(), owner.key().as_ref(), &[nonce]], bump = bump, has_one = owner)]
-//     pub expense_package: Account<'info, ExpensePackage>,
-//     pub owner: Signer<'info>,
-// }

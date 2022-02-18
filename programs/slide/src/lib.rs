@@ -76,24 +76,4 @@ pub mod slide {
         expense_package.expense_manager = expense_manager.key();
         Ok(())
     }
-    // pub fn add_transaction_hashes(
-    //     ctx: Context<AddTransactionHashes>,
-    //     transaction_hashes: Vec<String>,
-    //     _nonce: u8,
-    //     _expense_manager_address: Pubkey,
-    //     _bump: u8,
-    // ) -> ProgramResult {
-    //     let expense_package = &mut ctx.accounts.expense_package;
-    //     require!(
-    //         expense_package.state == ExpensePackageState::CREATED,
-    //         SlideError::PackageFrozen
-    //     );
-    //     // TODO: check hash length
-    //     // TODO: check vec length
-    //     // TODO: filter out duplicates
-    //     expense_package
-    //         .transaction_hashes
-    //         .extend_from_slice(&transaction_hashes);
-    //     Ok(())
-    // }
 }
