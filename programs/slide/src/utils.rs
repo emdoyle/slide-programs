@@ -14,8 +14,10 @@ pub enum SlideError {
     PackageFrozen,
     #[msg("ExpenseManager for given name already exists")]
     ManagerAlreadyExists,
-    #[msg("ExpensePackage already exists for given ExpenseManager and signer")]
+    #[msg("ExpensePackage already exists for given ExpenseManager, signer and nonce")]
     PackageAlreadyExists,
+    #[msg("ExpensePackage is already recorded in user's expense data")]
+    PackageAlreadyRecorded,
     #[msg("Cannot create ExpensePackage under non-existent ExpenseManager")]
     ManagerUninitialized,
     DataTooLarge,

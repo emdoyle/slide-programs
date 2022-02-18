@@ -42,6 +42,7 @@ function getUserExpenseDataAddressAndBump(
 function getExpensePackageAddressAndBump(
   expenseManagerPDA: anchor.web3.PublicKey,
   owner: anchor.web3.PublicKey,
+  nonce: number,
   programId: PublicKey
 ): [PublicKey, number] {
   return anchor.utils.publicKey.findProgramAddressSync(
@@ -49,6 +50,7 @@ function getExpensePackageAddressAndBump(
       Buffer.from("expense_package"),
       expenseManagerPDA.toBuffer(),
       owner.toBuffer(),
+      Buffer.from([nonce]),
     ],
     programId
   );
@@ -130,6 +132,7 @@ async function setupExpensePackage(
   program: Program<Slide>,
   name: string,
   description: string,
+  nonce: number,
   user: anchor.web3.PublicKey,
   managerName: string
 ) {
@@ -140,18 +143,28 @@ async function setupExpensePackage(
   const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
     user,
+    nonce,
     program.programId
   );
+  const [userExpenseDataPDA, userExpenseBump] =
+    getUserExpenseDataAddressAndBump(
+      expenseManagerPDA,
+      user,
+      program.programId
+    );
   await program.rpc.createExpensePackage(
     name,
     description,
+    nonce,
     managerName,
-    managerBump,
     packageBump,
+    managerBump,
+    userExpenseBump,
     {
       accounts: {
-        expenseManager: expenseManagerPDA,
         expensePackage: expensePackagePDA,
+        expenseManager: expenseManagerPDA,
+        userExpenseData: userExpenseDataPDA,
         owner: user,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
@@ -165,6 +178,7 @@ async function setupExpensePackage(
 
 async function addTransactionHash(
   program: Program<Slide>,
+  nonce: number,
   transactionHash: string,
   user: anchor.web3.PublicKey,
   expenseManagerPDA: anchor.web3.PublicKey
@@ -172,6 +186,7 @@ async function addTransactionHash(
   const [expensePackagePDA, bump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
     user,
+    nonce,
     program.programId
   );
   await program.rpc.addTransactionHash(
@@ -228,7 +243,11 @@ describe("slide", () => {
     expect(userExpenseData.expensePackages).to.eql([]);
   });
   it("creates an expense package with correct initial values", async () => {
-    const { authority, expenseManagerPDA } = await setupExpenseManager(
+    const { authority } = await setupExpenseManager(
+      program,
+      "testing manager 2"
+    );
+    const { userExpenseDataPDA } = await joinExpenseManager(
       program,
       "testing manager 2"
     );
@@ -236,6 +255,7 @@ describe("slide", () => {
       program,
       "myexpense",
       "I bought some stuff on ebay",
+      1,
       authority.publicKey,
       "testing manager 2"
     );
@@ -247,33 +267,44 @@ describe("slide", () => {
       "I bought some stuff on ebay"
     );
     assert(expensePackageData.owner.equals(authority.publicKey));
-    assert(expensePackageData.expenseManager.equals(expenseManagerPDA));
     expect(expensePackageData.state).to.eql({ created: {} });
-  });
-
-  it("adds a transaction hash to expense package", async () => {
-    const { authority, expenseManagerPDA } = await setupExpenseManager(
-      program,
-      "new testing manager 3"
+    let userExpenseData = await program.account.userExpenseData.fetch(
+      userExpenseDataPDA
     );
-    await setupExpensePackage(
-      program,
-      "myexpense",
-      "I bought some stuff on ebay",
-      authority.publicKey,
-      "new testing manager 3"
-    );
-    const { expensePackagePDA } = await addTransactionHash(
-      program,
-      "faketransactionhash",
-      authority.publicKey,
-      expenseManagerPDA
-    );
-    let expensePackageData = await program.account.expensePackage.fetch(
-      expensePackagePDA
-    );
-    expect(expensePackageData.transactionHashes).to.eql([
-      "faketransactionhash",
+    expect(userExpenseData.expensePackages).to.eql([
+      { nonce: 1, address: expensePackagePDA },
     ]);
   });
+
+  // it("adds a transaction hash to expense package", async () => {
+  //   const { authority, expenseManagerPDA } = await setupExpenseManager(
+  //     program,
+  //     "testing manager 3"
+  //   );
+  //   const { userDataPDA, userExpenseDataPDA } = await joinExpenseManager(
+  //     program,
+  //     "testing manager 3"
+  //   );
+  //   await setupExpensePackage(
+  //     program,
+  //     "myexpense",
+  //     "I bought some stuff on ebay",
+  //     1,
+  //     authority.publicKey,
+  //     "testing manager 3"
+  //   );
+  //   const { expensePackagePDA } = await addTransactionHash(
+  //     program,
+  //     1,
+  //     "faketransactionhash",
+  //     authority.publicKey,
+  //     expenseManagerPDA
+  //   );
+  //   let expensePackageData = await program.account.expensePackage.fetch(
+  //     expensePackagePDA
+  //   );
+  //   expect(expensePackageData.transactionHashes).to.eql([
+  //     "faketransactionhash",
+  //   ]);
+  // });
 });

@@ -26,15 +26,21 @@ impl ExpenseManager {
     pub const MAX_SIZE: usize = 96;
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default, Eq, PartialEq)]
+pub struct RemotePDAInfo {
+    pub nonce: u8,
+    pub address: Pubkey,
+}
+
 #[account]
 #[derive(Default, Eq, PartialEq)]
 pub struct UserExpenseData {
-    pub expense_packages: Vec<Pubkey>,
+    pub expense_packages: Vec<RemotePDAInfo>,
 }
 
 impl UserExpenseData {
-    // expense_packages: 32 * 10 = 320
-    pub const MAX_SIZE: usize = 320;
+    // expense_packages: (32 + 1) * 10 = 330
+    pub const MAX_SIZE: usize = 330;
 }
 
 #[account]

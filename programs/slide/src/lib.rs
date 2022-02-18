@@ -72,27 +72,37 @@ pub mod slide {
         ctx: Context<CreateExpensePackage>,
         name: String,
         description: String,
+        nonce: u8,
         _manager_name: String,
-        _manager_bump: u8,
         _package_bump: u8,
+        _manager_bump: u8,
+        _user_expense_bump: u8,
     ) -> ProgramResult {
-        // TODO: how to authorize a user to create an expense package?
+        // TODO: how to authorize a user to create an expense package? --> mint authority on Manager
         let expense_package = &mut ctx.accounts.expense_package;
         require!(
             AsRef::<ExpensePackage>::as_ref(expense_package) == &ExpensePackage::default(),
             SlideError::PackageAlreadyExists
         );
         let owner = &ctx.accounts.owner;
+        let user_expense_data = &mut ctx.accounts.user_expense_data;
         // TODO: check string field lengths
         expense_package.name = name;
         expense_package.description = description;
         expense_package.owner = owner.key();
-        let expense_manager = &ctx.accounts.expense_manager;
+        let remote_pda_info_for_package = RemotePDAInfo {
+            nonce,
+            address: expense_package.key(),
+        };
         require!(
-            AsRef::<ExpenseManager>::as_ref(expense_manager) != &ExpenseManager::default(),
-            SlideError::ManagerUninitialized
+            !user_expense_data
+                .expense_packages
+                .contains(&remote_pda_info_for_package),
+            SlideError::PackageAlreadyRecorded
         );
-        expense_package.expense_manager = expense_manager.key();
+        user_expense_data
+            .expense_packages
+            .push(remote_pda_info_for_package);
         Ok(())
     }
     // TODO: this probably needs to accept a Vec of hashes
