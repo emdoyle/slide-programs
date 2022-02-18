@@ -176,10 +176,10 @@ async function setupExpensePackage(
   };
 }
 
-async function addTransactionHash(
+async function addTransactionHashes(
   program: Program<Slide>,
   nonce: number,
-  transactionHash: string,
+  transactionHashes: string[],
   user: anchor.web3.PublicKey,
   expenseManagerPDA: anchor.web3.PublicKey
 ) {
@@ -189,8 +189,9 @@ async function addTransactionHash(
     nonce,
     program.programId
   );
-  await program.rpc.addTransactionHash(
-    transactionHash,
+  await program.rpc.addTransactionHashes(
+    transactionHashes,
+    nonce,
     expenseManagerPDA,
     bump,
     {
@@ -276,35 +277,33 @@ describe("slide", () => {
     ]);
   });
 
-  // it("adds a transaction hash to expense package", async () => {
-  //   const { authority, expenseManagerPDA } = await setupExpenseManager(
-  //     program,
-  //     "testing manager 3"
-  //   );
-  //   const { userDataPDA, userExpenseDataPDA } = await joinExpenseManager(
-  //     program,
-  //     "testing manager 3"
-  //   );
-  //   await setupExpensePackage(
-  //     program,
-  //     "myexpense",
-  //     "I bought some stuff on ebay",
-  //     1,
-  //     authority.publicKey,
-  //     "testing manager 3"
-  //   );
-  //   const { expensePackagePDA } = await addTransactionHash(
-  //     program,
-  //     1,
-  //     "faketransactionhash",
-  //     authority.publicKey,
-  //     expenseManagerPDA
-  //   );
-  //   let expensePackageData = await program.account.expensePackage.fetch(
-  //     expensePackagePDA
-  //   );
-  //   expect(expensePackageData.transactionHashes).to.eql([
-  //     "faketransactionhash",
-  //   ]);
-  // });
+  it("adds transaction hashes to expense package", async () => {
+    const { authority, expenseManagerPDA } = await setupExpenseManager(
+      program,
+      "testing manager 3"
+    );
+    await joinExpenseManager(program, "testing manager 3");
+    await setupExpensePackage(
+      program,
+      "myexpense",
+      "I bought some stuff on ebay",
+      1,
+      authority.publicKey,
+      "testing manager 3"
+    );
+    const { expensePackagePDA } = await addTransactionHashes(
+      program,
+      1,
+      ["faketransactionhash", "faketransactionhash2"],
+      authority.publicKey,
+      expenseManagerPDA
+    );
+    let expensePackageData = await program.account.expensePackage.fetch(
+      expensePackagePDA
+    );
+    expect(expensePackageData.transactionHashes).to.eql([
+      "faketransactionhash",
+      "faketransactionhash2",
+    ]);
+  });
 });

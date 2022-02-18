@@ -105,10 +105,10 @@ pub mod slide {
             .push(remote_pda_info_for_package);
         Ok(())
     }
-    // TODO: this probably needs to accept a Vec of hashes
-    pub fn add_transaction_hash(
-        ctx: Context<AddTransactionHash>,
-        transaction_hash: String,
+    pub fn add_transaction_hashes(
+        ctx: Context<AddTransactionHashes>,
+        transaction_hashes: Vec<String>,
+        _nonce: u8,
         _expense_manager_address: Pubkey,
         _bump: u8,
     ) -> ProgramResult {
@@ -119,7 +119,10 @@ pub mod slide {
         );
         // TODO: check hash length
         // TODO: check vec length
-        expense_package.transaction_hashes.push(transaction_hash);
+        // TODO: filter out duplicates
+        expense_package
+            .transaction_hashes
+            .extend_from_slice(&transaction_hashes);
         Ok(())
     }
 }
