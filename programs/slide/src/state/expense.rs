@@ -1,70 +1,49 @@
+use super::account_type::AccountType;
 use anchor_lang::prelude::*;
 
 #[account]
 #[derive(Default, Eq, PartialEq)]
-pub struct UserData {
-    pub name: String,
-    pub expense_managers: Vec<Pubkey>,
-}
-
-impl UserData {
-    // name: 64
-    // expense_managers: 32 * 10 = 320
-    pub const MAX_SIZE: usize = 394;
-}
-
-#[account]
-#[derive(Default, Eq, PartialEq)]
 pub struct ExpenseManager {
+    pub account_type: AccountType,
     pub name: String,
     pub authority: Pubkey,
+    pub native_payout: bool,
+    pub token_payout: Option<Pubkey>,
+    // pub payout_lockup_period -- look into time types
 }
 
 impl ExpenseManager {
+    // account_type: 1
     // name: 64
     // authority: 32
-    pub const MAX_SIZE: usize = 96;
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default, Eq, PartialEq)]
-pub struct RemotePDAInfo {
-    pub nonce: u8,
-    pub address: Pubkey,
-}
-
-#[account]
-#[derive(Default, Eq, PartialEq)]
-pub struct UserExpenseData {
-    pub expense_packages: Vec<RemotePDAInfo>,
-}
-
-impl UserExpenseData {
-    // expense_packages: (32 + 1) * 10 = 330
-    pub const MAX_SIZE: usize = 330;
+    // native_payout: 1
+    // token_payout: 32
+    pub const MAX_SIZE: usize = 1 + 64 + 32 + 1 + 32;
 }
 
 #[account]
 #[derive(Default, Eq, PartialEq)]
 pub struct ExpensePackage {
+    pub account_type: AccountType,
     pub name: String,
     pub description: String,
-    pub transaction_hashes: Vec<String>,
     pub owner: Pubkey,
     pub expense_manager: Pubkey,
     pub state: ExpensePackageState,
+    pub quantity: u64,
+    pub token_authority: Option<Pubkey>,
 }
 
-// TODO: once rent-refunds are implemented (receipts)
-//   might be able to stop storing the hashes on-chain?
-//   also storing hashes as individual accounts would allow better pay-as-you-go mechanics
 impl ExpensePackage {
+    // account_type: 1
     // name: 64
     // description: 256
-    // transaction_hashes: 32 * 32 = 1024
     // owner: 32
     // expense_manager: 32
     // state: 1
-    pub const MAX_SIZE: usize = 1409;
+    // quantity: 64
+    // token_authority: 32
+    pub const MAX_SIZE: usize = 1 + 64 + 256 + 32 + 32 + 1 + 64 + 32;
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
