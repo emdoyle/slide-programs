@@ -18,33 +18,18 @@ pub struct CreateExpenseManager<'info> {
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
-//
-// #[derive(Accounts)]
-// #[instruction(name: String, manager_bump: u8, user_bump: u8, user_expense_bump: u8)]
-// pub struct JoinExpenseManager<'info> {
-//     #[account(mut, seeds = [b"user_data", user.key().as_ref()], bump = user_bump)]
-//     pub user_data: Account<'info, UserData>,
-//     #[account(seeds = [b"expense_manager", name.as_bytes()], bump = manager_bump)]
-//     pub expense_manager: Account<'info, ExpenseManager>,
-//     #[account(init, seeds = [b"user_expense_data", expense_manager.key().as_ref(), user.key().as_ref()], bump = user_expense_bump, payer = user, space = UserExpenseData::MAX_SIZE + 8)]
-//     pub user_expense_data: Account<'info, UserExpenseData>,
-//     pub user: Signer<'info>,
-//     pub system_program: Program<'info, System>,
-// }
-//
-// #[derive(Accounts)]
-// #[instruction(name: String, description: String, nonce: u8, manager_name: String, package_bump: u8, manager_bump: u8, user_expense_bump: u8)]
-// pub struct CreateExpensePackage<'info> {
-//     #[account(init, seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &[nonce]], bump = package_bump, payer = owner, space = ExpensePackage::MAX_SIZE + 8)]
-//     pub expense_package: Account<'info, ExpensePackage>,
-//     #[account(seeds = [b"expense_manager", manager_name.as_bytes()], bump = manager_bump)]
-//     pub expense_manager: Account<'info, ExpenseManager>,
-//     #[account(mut, seeds = [b"user_expense_data", expense_manager.key().as_ref(), owner.key().as_ref()], bump = user_expense_bump)]
-//     pub user_expense_data: Account<'info, UserExpenseData>,
-//     pub owner: Signer<'info>,
-//     pub system_program: Program<'info, System>,
-// }
-//
+
+#[derive(Accounts)]
+#[instruction(name: String, description: String, nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]
+pub struct CreateExpensePackage<'info> {
+    #[account(init, seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &[nonce]], bump = package_bump, payer = owner, space = ExpensePackage::MAX_SIZE + 8)]
+    pub expense_package: Account<'info, ExpensePackage>,
+    #[account(seeds = [b"expense_manager", manager_name.as_bytes()], bump = manager_bump)]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    pub owner: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
 // #[derive(Accounts)]
 // #[instruction(transaction_hashes: Vec<String>, nonce: u8, expense_manager_address: Pubkey, bump: u8)]
 // pub struct AddTransactionHashes<'info> {

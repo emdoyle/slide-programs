@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 
+// TODO: do the initialized checks need to exist? init constraint likely handles both cases already
 #[error]
 pub enum SlideError {
     #[msg("UserData for given name already exists")]

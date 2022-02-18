@@ -24,21 +24,6 @@ function getExpenseManagerAddressAndBump(
   );
 }
 
-function getUserExpenseDataAddressAndBump(
-  expenseManagerPDA: anchor.web3.PublicKey,
-  user: anchor.web3.PublicKey,
-  programId: PublicKey
-): [PublicKey, number] {
-  return anchor.utils.publicKey.findProgramAddressSync(
-    [
-      Buffer.from("user_expense_data"),
-      expenseManagerPDA.toBuffer(),
-      user.toBuffer(),
-    ],
-    programId
-  );
-}
-
 function getExpensePackageAddressAndBump(
   expenseManagerPDA: anchor.web3.PublicKey,
   owner: anchor.web3.PublicKey,
@@ -97,41 +82,6 @@ async function setupExpenseManager(program: Program<Slide>, name: string) {
   };
 }
 
-async function joinExpenseManager(program: Program<Slide>, name: string) {
-  const user = program.provider.wallet;
-  const [userDataPDA, userBump] = getUserDataAddressAndBump(
-    user.publicKey,
-    program.programId
-  );
-  const [expenseManagerPDA, managerBump] = getExpenseManagerAddressAndBump(
-    name,
-    program.programId
-  );
-  const [userExpenseDataPDA, userExpenseBump] =
-    getUserExpenseDataAddressAndBump(
-      expenseManagerPDA,
-      user.publicKey,
-      program.programId
-    );
-  await program.rpc.joinExpenseManager(
-    name,
-    managerBump,
-    userBump,
-    userExpenseBump,
-    {
-      accounts: {
-        userData: userDataPDA,
-        expenseManager: expenseManagerPDA,
-        userExpenseData: userExpenseDataPDA,
-        user: user.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      },
-      signers: [],
-    }
-  );
-  return { userDataPDA, expenseManagerPDA, userExpenseDataPDA };
-}
-
 async function setupExpensePackage(
   program: Program<Slide>,
   name: string,
@@ -150,25 +100,17 @@ async function setupExpensePackage(
     nonce,
     program.programId
   );
-  const [userExpenseDataPDA, userExpenseBump] =
-    getUserExpenseDataAddressAndBump(
-      expenseManagerPDA,
-      user,
-      program.programId
-    );
   await program.rpc.createExpensePackage(
     name,
     description,
     nonce,
     managerName,
-    packageBump,
     managerBump,
-    userExpenseBump,
+    packageBump,
     {
       accounts: {
         expensePackage: expensePackagePDA,
         expenseManager: expenseManagerPDA,
-        userExpenseData: userExpenseDataPDA,
         owner: user,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
@@ -241,56 +183,33 @@ describe("slide", () => {
     expect(expenseManagerData.nativePayout).to.equal(true);
     expect(expenseManagerData.tokenPayout).to.be.null;
   });
-  // it("joins expense manager and sets correct value in user data", async () => {
-  //   const { expenseManagerPDA } = await setupExpenseManager(
-  //     program,
-  //     "testing another manager"
-  //   );
-  //   const { userDataPDA, userExpenseDataPDA } = await joinExpenseManager(
-  //     program,
-  //     "testing another manager"
-  //   );
-  //   let userData = await program.account.userData.fetch(userDataPDA);
-  //   expect(userData.expenseManagers).to.eql([expenseManagerPDA]);
-  //   let userExpenseData = await program.account.userExpenseData.fetch(
-  //     userExpenseDataPDA
-  //   );
-  //   expect(userExpenseData.expensePackages).to.eql([]);
-  // });
-  // it("creates an expense package with correct initial values", async () => {
-  //   const { authority } = await setupExpenseManager(
-  //     program,
-  //     "testing manager 2"
-  //   );
-  //   const { userExpenseDataPDA } = await joinExpenseManager(
-  //     program,
-  //     "testing manager 2"
-  //   );
-  //   const { expensePackagePDA } = await setupExpensePackage(
-  //     program,
-  //     "myexpense",
-  //     "I bought some stuff on ebay",
-  //     1,
-  //     authority.publicKey,
-  //     "testing manager 2"
-  //   );
-  //   let expensePackageData = await program.account.expensePackage.fetch(
-  //     expensePackagePDA
-  //   );
-  //   expect(expensePackageData.name).to.equal("myexpense");
-  //   expect(expensePackageData.description).to.equal(
-  //     "I bought some stuff on ebay"
-  //   );
-  //   assert(expensePackageData.owner.equals(authority.publicKey));
-  //   expect(expensePackageData.state).to.eql({ created: {} });
-  //   let userExpenseData = await program.account.userExpenseData.fetch(
-  //     userExpenseDataPDA
-  //   );
-  //   expect(userExpenseData.expensePackages).to.eql([
-  //     { nonce: 1, address: expensePackagePDA },
-  //   ]);
-  // });
-  //
+  it("creates an expense package with correct initial values", async () => {
+    const { authority, expenseManagerPDA } = await setupExpenseManager(
+      program,
+      "testing manager 2"
+    );
+    const { expensePackagePDA } = await setupExpensePackage(
+      program,
+      "myexpense",
+      "I bought some stuff on ebay",
+      1,
+      authority.publicKey,
+      "testing manager 2"
+    );
+    let expensePackageData = await program.account.expensePackage.fetch(
+      expensePackagePDA
+    );
+    expect(expensePackageData.name).to.equal("myexpense");
+    expect(expensePackageData.description).to.equal(
+      "I bought some stuff on ebay"
+    );
+    assert(expensePackageData.owner.equals(authority.publicKey));
+    assert(expensePackageData.expenseManager.equals(expenseManagerPDA));
+    expect(expensePackageData.state).to.eql({ created: {} });
+    expect(expensePackageData.quantity.toNumber()).to.equal(0);
+    expect(expensePackageData.tokenAuthority).to.be.null;
+  });
+
   // it("adds transaction hashes to expense package", async () => {
   //   const { authority, expenseManagerPDA } = await setupExpenseManager(
   //     program,
