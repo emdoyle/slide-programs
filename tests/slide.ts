@@ -227,17 +227,20 @@ describe("slide", () => {
     assert(userData.user.equals(user.publicKey));
     expect(userData.accountType).to.eql({ userData: {} });
   });
-  // it("creates expense manager with correct initial values", async () => {
-  //   const { authority, expenseManagerPDA } = await setupExpenseManager(
-  //     program,
-  //     "testing manager"
-  //   );
-  //   let expenseManagerData = await program.account.expenseManager.fetch(
-  //     expenseManagerPDA
-  //   );
-  //   expect(expenseManagerData.name).to.equal("testing manager");
-  //   assert(expenseManagerData.authority.equals(authority.publicKey));
-  // });
+  it("creates expense manager with correct initial values", async () => {
+    const { authority, expenseManagerPDA } = await setupExpenseManager(
+      program,
+      "testing manager"
+    );
+    let expenseManagerData = await program.account.expenseManager.fetch(
+      expenseManagerPDA
+    );
+    expect(expenseManagerData.name).to.equal("testing manager");
+    assert(expenseManagerData.authority.equals(authority.publicKey));
+    expect(expenseManagerData.accountType).to.eql({ expenseManager: {} });
+    expect(expenseManagerData.nativePayout).to.equal(true);
+    expect(expenseManagerData.tokenPayout).to.be.null;
+  });
   // it("joins expense manager and sets correct value in user data", async () => {
   //   const { expenseManagerPDA } = await setupExpenseManager(
   //     program,

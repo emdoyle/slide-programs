@@ -10,14 +10,14 @@ pub struct InitializeUser<'info> {
     pub system_program: Program<'info, System>,
 }
 
-// #[derive(Accounts)]
-// #[instruction(name: String, bump: u8)]
-// pub struct CreateExpenseManager<'info> {
-//     #[account(init, seeds = [b"expense_manager", name.as_bytes()], bump = bump, payer = authority, space = ExpenseManager::MAX_SIZE + 8)]
-//     pub expense_manager: Account<'info, ExpenseManager>,
-//     pub authority: Signer<'info>,
-//     pub system_program: Program<'info, System>,
-// }
+#[derive(Accounts)]
+#[instruction(name: String, bump: u8)]
+pub struct CreateExpenseManager<'info> {
+    #[account(init, seeds = [b"expense_manager", name.as_bytes()], bump = bump, payer = authority, space = ExpenseManager::MAX_SIZE + 8)]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
 //
 // #[derive(Accounts)]
 // #[instruction(name: String, manager_bump: u8, user_bump: u8, user_expense_bump: u8)]

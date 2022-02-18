@@ -33,22 +33,24 @@ pub mod slide {
         user_data.user = user.key();
         Ok(())
     }
-    // pub fn create_expense_manager(
-    //     ctx: Context<CreateExpenseManager>,
-    //     name: String,
-    //     _bump: u8,
-    // ) -> ProgramResult {
-    //     let expense_manager = &mut ctx.accounts.expense_manager;
-    //     require!(
-    //         AsRef::<ExpenseManager>::as_ref(expense_manager) == &ExpenseManager::default(),
-    //         SlideError::ManagerAlreadyExists
-    //     );
-    //     let authority = &ctx.accounts.authority;
-    //     // TODO: check if name is too large and send meaningful error code
-    //     expense_manager.name = name;
-    //     expense_manager.authority = authority.key();
-    //     Ok(())
-    // }
+    pub fn create_expense_manager(
+        ctx: Context<CreateExpenseManager>,
+        name: String,
+        _bump: u8,
+    ) -> ProgramResult {
+        let expense_manager = &mut ctx.accounts.expense_manager;
+        require!(
+            AsRef::<ExpenseManager>::as_ref(expense_manager) == &ExpenseManager::default(),
+            SlideError::ManagerAlreadyExists
+        );
+        expense_manager.account_type = AccountType::ExpenseManager;
+        let authority = &ctx.accounts.authority;
+        // TODO: check if name is too large and send meaningful error code
+        expense_manager.name = name;
+        expense_manager.authority = authority.key();
+        expense_manager.native_payout = true;
+        Ok(())
+    }
     // pub fn join_expense_manager(
     //     ctx: Context<JoinExpenseManager>,
     //     _name: String,
