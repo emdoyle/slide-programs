@@ -4,8 +4,6 @@ pub mod utils;
 
 use anchor_lang::prelude::*;
 use instructions::*;
-use num_derive::*;
-use num_traits::*;
 use state::*;
 use utils::*;
 
