@@ -53,8 +53,6 @@ pub mod slide {
     }
     pub fn create_expense_package(
         ctx: Context<CreateExpensePackage>,
-        name: String,
-        description: String,
         _nonce: u8,
         _manager_name: String,
         _manager_bump: u8,
@@ -69,11 +67,32 @@ pub mod slide {
         expense_package.account_type = AccountType::ExpensePackage;
         let owner = &ctx.accounts.owner;
         let expense_manager = &ctx.accounts.expense_manager;
-        // TODO: check string field lengths
-        expense_package.name = name;
-        expense_package.description = description;
         expense_package.owner = owner.key();
         expense_package.expense_manager = expense_manager.key();
+        Ok(())
+    }
+    pub fn update_expense_package(
+        ctx: Context<UpdateExpensePackage>,
+        name: String,
+        description: String,
+        quantity: u64,
+        token_authority: Option<Pubkey>,
+        expense_manager_address: Pubkey,
+        _nonce: u8,
+        _bump: u8,
+    ) -> ProgramResult {
+        let expense_package = &mut ctx.accounts.expense_package;
+        let owner = &ctx.accounts.owner;
+        // TODO: not sure if this check is necessary
+        require!(
+            expense_package.owner == owner.key()
+                && expense_package.expense_manager == expense_manager_address,
+            SlideError::PackageOwnershipMismatch
+        );
+        expense_package.name = name;
+        expense_package.description = description;
+        expense_package.quantity = quantity;
+        expense_package.token_authority = token_authority;
         Ok(())
     }
 }

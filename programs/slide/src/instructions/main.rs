@@ -20,7 +20,7 @@ pub struct CreateExpenseManager<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(name: String, description: String, nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]
+#[instruction(nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]
 pub struct CreateExpensePackage<'info> {
     #[account(init, seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &[nonce]], bump = package_bump, payer = owner, space = ExpensePackage::MAX_SIZE + 8)]
     pub expense_package: Account<'info, ExpensePackage>,
@@ -28,4 +28,12 @@ pub struct CreateExpensePackage<'info> {
     pub expense_manager: Account<'info, ExpenseManager>,
     pub owner: Signer<'info>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(name: String, description: String, quantity: u64, token_authority: Option<Pubkey>, expense_manager_address: Pubkey, nonce: u8, bump: u8)]
+pub struct UpdateExpensePackage<'info> {
+    #[account(mut, seeds = [b"expense_package", expense_manager_address.as_ref(), owner.key().as_ref(), &[nonce]], bump = bump)]
+    pub expense_package: Account<'info, ExpensePackage>,
+    pub owner: Signer<'info>,
 }
