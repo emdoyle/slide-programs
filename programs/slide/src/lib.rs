@@ -110,4 +110,39 @@ pub mod slide {
         expense_package.state = ExpensePackageState::PENDING;
         Ok(())
     }
+    pub fn approve_expense_package(
+        ctx: Context<ApproveExpensePackage>,
+        _owner_pubkey: Pubkey,
+        _nonce: u8,
+        _manager_name: String,
+        _manager_bump: u8,
+        _package_bump: u8,
+    ) -> ProgramResult {
+        let expense_package = &mut ctx.accounts.expense_package;
+        let expense_manager = &ctx.accounts.expense_manager;
+        require!(
+            expense_package.expense_manager == expense_manager.key(),
+            SlideError::PackageOwnershipMismatch
+        );
+        expense_package.state = ExpensePackageState::APPROVED;
+        // TODO: money movement to escrow?
+        Ok(())
+    }
+    pub fn deny_expense_package(
+        ctx: Context<DenyExpensePackage>,
+        _owner_pubkey: Pubkey,
+        _nonce: u8,
+        _manager_name: String,
+        _manager_bump: u8,
+        _package_bump: u8,
+    ) -> ProgramResult {
+        let expense_package = &mut ctx.accounts.expense_package;
+        let expense_manager = &ctx.accounts.expense_manager;
+        require!(
+            expense_package.expense_manager == expense_manager.key(),
+            SlideError::PackageOwnershipMismatch
+        );
+        expense_package.state = ExpensePackageState::DENIED;
+        Ok(())
+    }
 }

@@ -45,3 +45,23 @@ pub struct SubmitExpensePackage<'info> {
     pub expense_package: Account<'info, ExpensePackage>,
     pub owner: Signer<'info>,
 }
+
+#[derive(Accounts)]
+#[instruction(owner_pubkey: Pubkey, nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]
+pub struct ApproveExpensePackage<'info> {
+    #[account(mut, seeds = [b"expense_package", expense_manager.key().as_ref(), owner_pubkey.as_ref(), &[nonce]], bump = package_bump)]
+    pub expense_package: Account<'info, ExpensePackage>,
+    #[account(seeds = [b"expense_manager", manager_name.as_bytes()], bump = manager_bump, has_one = authority)]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(owner_pubkey: Pubkey, nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]
+pub struct DenyExpensePackage<'info> {
+    #[account(mut, seeds = [b"expense_package", expense_manager.key().as_ref(), owner_pubkey.as_ref(), &[nonce]], bump = package_bump)]
+    pub expense_package: Account<'info, ExpensePackage>,
+    #[account(seeds = [b"expense_manager", manager_name.as_bytes()], bump = manager_bump, has_one = authority)]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    pub authority: Signer<'info>,
+}

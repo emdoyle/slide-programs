@@ -51,7 +51,7 @@ pub enum ExpensePackageState {
     CREATED,
     PENDING,
     DENIED,
-    ACCEPTED,
+    APPROVED,
     PAID,
 }
 

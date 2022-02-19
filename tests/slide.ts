@@ -175,6 +175,74 @@ async function submitExpensePackage(
   return { expensePackagePDA };
 }
 
+async function approveExpensePackage(
+  program: Program<Slide>,
+  user: anchor.web3.PublicKey,
+  nonce: number,
+  managerName: string
+) {
+  const [expenseManagerPDA, managerBump] = getExpenseManagerAddressAndBump(
+    managerName,
+    program.programId
+  );
+  const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
+    expenseManagerPDA,
+    user,
+    nonce,
+    program.programId
+  );
+  await program.rpc.approveExpensePackage(
+    user,
+    nonce,
+    managerName,
+    managerBump,
+    packageBump,
+    {
+      accounts: {
+        expensePackage: expensePackagePDA,
+        expenseManager: expenseManagerPDA,
+        authority: user,
+      },
+      signers: [],
+    }
+  );
+  return { expensePackagePDA };
+}
+
+async function denyExpensePackage(
+  program: Program<Slide>,
+  user: anchor.web3.PublicKey,
+  nonce: number,
+  managerName: string
+) {
+  const [expenseManagerPDA, managerBump] = getExpenseManagerAddressAndBump(
+    managerName,
+    program.programId
+  );
+  const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
+    expenseManagerPDA,
+    user,
+    nonce,
+    program.programId
+  );
+  await program.rpc.denyExpensePackage(
+    user,
+    nonce,
+    managerName,
+    managerBump,
+    packageBump,
+    {
+      accounts: {
+        expensePackage: expensePackagePDA,
+        expenseManager: expenseManagerPDA,
+        authority: user,
+      },
+      signers: [],
+    }
+  );
+  return { expensePackagePDA };
+}
+
 describe("slide", () => {
   anchor.setProvider(anchor.Provider.env());
 
@@ -279,5 +347,61 @@ describe("slide", () => {
       expensePackagePDA
     );
     expect(expensePackageData.state).to.eql({ pending: {} });
+  });
+  it("approves an expense package and retrieves correctly updated state", async () => {
+    const { authority, expenseManagerPDA } = await createExpenseManager(
+      program,
+      "testing manager 5"
+    );
+    const { expensePackagePDA } = await createExpensePackage(
+      program,
+      1,
+      authority.publicKey,
+      "testing manager 5"
+    );
+    await submitExpensePackage(
+      program,
+      authority.publicKey,
+      expenseManagerPDA,
+      1
+    );
+    await approveExpensePackage(
+      program,
+      authority.publicKey,
+      1,
+      "testing manager 5"
+    );
+    let expensePackageData = await program.account.expensePackage.fetch(
+      expensePackagePDA
+    );
+    expect(expensePackageData.state).to.eql({ approved: {} });
+  });
+  it("denies an expense package and retrieves correctly updated state", async () => {
+    const { authority, expenseManagerPDA } = await createExpenseManager(
+      program,
+      "testing manager 6"
+    );
+    const { expensePackagePDA } = await createExpensePackage(
+      program,
+      1,
+      authority.publicKey,
+      "testing manager 6"
+    );
+    await submitExpensePackage(
+      program,
+      authority.publicKey,
+      expenseManagerPDA,
+      1
+    );
+    await denyExpensePackage(
+      program,
+      authority.publicKey,
+      1,
+      "testing manager 6"
+    );
+    let expensePackageData = await program.account.expensePackage.fetch(
+      expensePackagePDA
+    );
+    expect(expensePackageData.state).to.eql({ denied: {} });
   });
 });
