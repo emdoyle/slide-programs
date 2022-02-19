@@ -62,7 +62,7 @@ async function initializeUser(
   return { user, userDataPDA };
 }
 
-async function setupExpenseManager(program: Program<Slide>, name: string) {
+async function createExpenseManager(program: Program<Slide>, name: string) {
   const authority = program.provider.wallet;
   const [expenseManagerPDA, bump] = getExpenseManagerAddressAndBump(
     name,
@@ -82,7 +82,7 @@ async function setupExpenseManager(program: Program<Slide>, name: string) {
   };
 }
 
-async function setupExpensePackage(
+async function createExpensePackage(
   program: Program<Slide>,
   nonce: number,
   user: anchor.web3.PublicKey,
@@ -153,6 +153,28 @@ async function updateExpensePackage(
   return { expensePackagePDA };
 }
 
+async function submitExpensePackage(
+  program: Program<Slide>,
+  user: anchor.web3.PublicKey,
+  expenseManagerPDA: PublicKey,
+  nonce: number
+) {
+  const [expensePackagePDA, bump] = getExpensePackageAddressAndBump(
+    expenseManagerPDA,
+    user,
+    nonce,
+    program.programId
+  );
+  await program.rpc.submitExpensePackage(expenseManagerPDA, nonce, bump, {
+    accounts: {
+      expensePackage: expensePackagePDA,
+      owner: user,
+    },
+    signers: [],
+  });
+  return { expensePackagePDA };
+}
+
 describe("slide", () => {
   anchor.setProvider(anchor.Provider.env());
 
@@ -171,7 +193,7 @@ describe("slide", () => {
     expect(userData.accountType).to.eql({ userData: {} });
   });
   it("creates expense manager with correct initial values", async () => {
-    const { authority, expenseManagerPDA } = await setupExpenseManager(
+    const { authority, expenseManagerPDA } = await createExpenseManager(
       program,
       "testing manager"
     );
@@ -185,11 +207,11 @@ describe("slide", () => {
     expect(expenseManagerData.tokenPayout).to.be.null;
   });
   it("creates an expense package with correct initial values", async () => {
-    const { authority, expenseManagerPDA } = await setupExpenseManager(
+    const { authority, expenseManagerPDA } = await createExpenseManager(
       program,
       "testing manager 2"
     );
-    const { expensePackagePDA } = await setupExpensePackage(
+    const { expensePackagePDA } = await createExpensePackage(
       program,
       1,
       authority.publicKey,
@@ -205,11 +227,11 @@ describe("slide", () => {
     expect(expensePackageData.tokenAuthority).to.be.null;
   });
   it("updates an expense package and retrieves correct values", async () => {
-    const { authority, expenseManagerPDA } = await setupExpenseManager(
+    const { authority, expenseManagerPDA } = await createExpenseManager(
       program,
       "testing manager 3"
     );
-    await setupExpensePackage(
+    await createExpensePackage(
       program,
       1,
       authority.publicKey,
@@ -235,5 +257,27 @@ describe("slide", () => {
     );
     expect(expensePackageData.quantity.toNumber()).to.equal(1000);
     assert(expensePackageData.tokenAuthority.equals(tokenAuthority.publicKey));
+  });
+  it("submits an expense package and retrieves correctly updated state", async () => {
+    const { authority, expenseManagerPDA } = await createExpenseManager(
+      program,
+      "testing manager 4"
+    );
+    await createExpensePackage(
+      program,
+      1,
+      authority.publicKey,
+      "testing manager 4"
+    );
+    const { expensePackagePDA } = await submitExpensePackage(
+      program,
+      authority.publicKey,
+      expenseManagerPDA,
+      1
+    );
+    let expensePackageData = await program.account.expensePackage.fetch(
+      expensePackagePDA
+    );
+    expect(expensePackageData.state).to.eql({ pending: {} });
   });
 });

@@ -12,5 +12,7 @@ pub enum SlideError {
     ManagerAlreadyExists,
     #[msg("ExpensePackage already exists for given ExpenseManager, signer and nonce")]
     PackageAlreadyExists,
+    #[msg("ExpensePackage has already been submitted or is otherwise locked")]
+    PackageFrozen,
     DataTooLarge,
 }

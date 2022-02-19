@@ -33,7 +33,15 @@ pub struct CreateExpensePackage<'info> {
 #[derive(Accounts)]
 #[instruction(name: String, description: String, quantity: u64, token_authority: Option<Pubkey>, expense_manager_address: Pubkey, nonce: u8, bump: u8)]
 pub struct UpdateExpensePackage<'info> {
-    #[account(mut, seeds = [b"expense_package", expense_manager_address.as_ref(), owner.key().as_ref(), &[nonce]], bump = bump)]
+    #[account(mut, seeds = [b"expense_package", expense_manager_address.as_ref(), owner.key().as_ref(), &[nonce]], bump = bump, has_one = owner)]
+    pub expense_package: Account<'info, ExpensePackage>,
+    pub owner: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(expense_manager_address: Pubkey, nonce: u8, bump: u8)]
+pub struct SubmitExpensePackage<'info> {
+    #[account(mut, seeds = [b"expense_package", expense_manager_address.as_ref(), owner.key().as_ref(), &[nonce]], bump = bump, has_one = owner)]
     pub expense_package: Account<'info, ExpensePackage>,
     pub owner: Signer<'info>,
 }

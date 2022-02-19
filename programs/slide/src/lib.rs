@@ -95,4 +95,19 @@ pub mod slide {
         expense_package.token_authority = token_authority;
         Ok(())
     }
+    pub fn submit_expense_package(
+        ctx: Context<SubmitExpensePackage>,
+        _expense_manager_address: Pubkey,
+        _nonce: u8,
+        _bump: u8,
+    ) -> ProgramResult {
+        let expense_package = &mut ctx.accounts.expense_package;
+        require!(
+            expense_package.state == ExpensePackageState::CREATED,
+            SlideError::PackageFrozen
+        );
+        // TODO: consider blocking if certain other fields (name, quantity) are still default
+        expense_package.state = ExpensePackageState::PENDING;
+        Ok(())
+    }
 }
