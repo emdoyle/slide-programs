@@ -7,7 +7,10 @@ import {
   getBalance,
   getExpenseManagerAddressAndBump,
   getExpensePackageAddressAndBump,
+  getFundedAccount,
   getUserDataAddressAndBump,
+  Payer,
+  signers,
   toBN,
   transfer,
 } from "./utils";
@@ -19,10 +22,10 @@ import {
 
 async function initializeUser(
   program: Program<Slide>,
+  user: Payer,
   username: string,
   realName: string
 ) {
-  const user = program.provider.wallet;
   const [userDataPDA, bump] = getUserDataAddressAndBump(
     user.publicKey,
     program.programId
@@ -33,13 +36,16 @@ async function initializeUser(
       user: user.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
     },
-    signers: [],
+    signers: signers(program, [user]),
   });
-  return { user, userDataPDA };
+  return { userDataPDA };
 }
 
-async function createExpenseManager(program: Program<Slide>, name: string) {
-  const authority = program.provider.wallet;
+async function createExpenseManager(
+  program: Program<Slide>,
+  authority: Payer,
+  name: string
+) {
   const [expenseManagerPDA, bump] = getExpenseManagerAddressAndBump(
     name,
     program.programId
@@ -50,18 +56,17 @@ async function createExpenseManager(program: Program<Slide>, name: string) {
       authority: authority.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
     },
-    signers: [],
+    signers: signers(program, [authority]),
   });
   return {
-    authority,
     expenseManagerPDA,
   };
 }
 
 async function createExpensePackage(
   program: Program<Slide>,
+  user: Payer,
   nonce: number,
-  user: anchor.web3.PublicKey,
   managerName: string
 ) {
   const [expenseManagerPDA, managerBump] = getExpenseManagerAddressAndBump(
@@ -70,11 +75,11 @@ async function createExpensePackage(
   );
   const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
-    user,
+    user.publicKey,
     nonce,
     program.programId
   );
-  const txn = await program.transaction.createExpensePackage(
+  await program.rpc.createExpensePackage(
     nonce,
     managerName,
     managerBump,
@@ -83,25 +88,20 @@ async function createExpensePackage(
       accounts: {
         expensePackage: expensePackagePDA,
         expenseManager: expenseManagerPDA,
-        owner: user,
+        owner: user.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
-      signers: [],
+      signers: signers(program, [user]),
     }
-  );
-  await program.provider.send(txn);
-  const feeInfo = await program.provider.connection.getFeeForMessage(
-    txn.compileMessage()
   );
   return {
     expensePackagePDA,
-    fee: feeInfo.value,
   };
 }
 
 async function updateExpensePackage(
   program: Program<Slide>,
-  user: anchor.web3.PublicKey,
+  user: Payer,
   name: string,
   description: string,
   quantity: number,
@@ -112,7 +112,7 @@ async function updateExpensePackage(
   const quantityBN = toBN(quantity);
   const [expensePackagePDA, bump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
-    user,
+    user.publicKey,
     nonce,
     program.programId
   );
@@ -127,9 +127,9 @@ async function updateExpensePackage(
     {
       accounts: {
         expensePackage: expensePackagePDA,
-        owner: user,
+        owner: user.publicKey,
       },
-      signers: [],
+      signers: signers(program, [user]),
     }
   );
   return { expensePackagePDA };
@@ -137,29 +137,29 @@ async function updateExpensePackage(
 
 async function submitExpensePackage(
   program: Program<Slide>,
-  user: anchor.web3.PublicKey,
+  user: Payer,
   expenseManagerPDA: PublicKey,
   nonce: number
 ) {
   const [expensePackagePDA, bump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
-    user,
+    user.publicKey,
     nonce,
     program.programId
   );
   await program.rpc.submitExpensePackage(expenseManagerPDA, nonce, bump, {
     accounts: {
       expensePackage: expensePackagePDA,
-      owner: user,
+      owner: user.publicKey,
     },
-    signers: [],
+    signers: signers(program, [user]),
   });
   return { expensePackagePDA };
 }
 
 async function approveExpensePackage(
   program: Program<Slide>,
-  user: anchor.web3.PublicKey,
+  user: Payer,
   nonce: number,
   managerName: string
 ) {
@@ -169,12 +169,12 @@ async function approveExpensePackage(
   );
   const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
-    user,
+    user.publicKey,
     nonce,
     program.programId
   );
   await program.rpc.approveExpensePackage(
-    user,
+    user.publicKey,
     nonce,
     managerName,
     managerBump,
@@ -183,9 +183,9 @@ async function approveExpensePackage(
       accounts: {
         expensePackage: expensePackagePDA,
         expenseManager: expenseManagerPDA,
-        authority: user,
+        authority: user.publicKey,
       },
-      signers: [],
+      signers: signers(program, [user]),
     }
   );
   return { expensePackagePDA };
@@ -193,7 +193,7 @@ async function approveExpensePackage(
 
 async function denyExpensePackage(
   program: Program<Slide>,
-  user: anchor.web3.PublicKey,
+  user: Payer,
   nonce: number,
   managerName: string
 ) {
@@ -203,12 +203,12 @@ async function denyExpensePackage(
   );
   const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
-    user,
+    user.publicKey,
     nonce,
     program.programId
   );
   await program.rpc.denyExpensePackage(
-    user,
+    user.publicKey,
     nonce,
     managerName,
     managerBump,
@@ -217,9 +217,9 @@ async function denyExpensePackage(
       accounts: {
         expensePackage: expensePackagePDA,
         expenseManager: expenseManagerPDA,
-        authority: user,
+        authority: user.publicKey,
       },
-      signers: [],
+      signers: signers(program, [user]),
     }
   );
   return { expensePackagePDA };
@@ -227,33 +227,24 @@ async function denyExpensePackage(
 
 async function withdrawFromExpensePackage(
   program: Program<Slide>,
-  user: PublicKey,
+  user: Payer,
   nonce: number,
   expenseManagerPDA
 ) {
   const [expensePackagePDA, bump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
-    user,
+    user.publicKey,
     nonce,
     program.programId
   );
-  const txn = program.transaction.withdrawFromExpensePackage(
-    expenseManagerPDA,
-    nonce,
-    bump,
-    {
-      accounts: {
-        expensePackage: expensePackagePDA,
-        owner: user,
-      },
-      signers: [],
-    }
-  );
-  await program.provider.send(txn);
-  const feeInfo = await program.provider.connection.getFeeForMessage(
-    txn.compileMessage()
-  );
-  return { expensePackagePDA, fee: feeInfo.value };
+  await program.rpc.withdrawFromExpensePackage(expenseManagerPDA, nonce, bump, {
+    accounts: {
+      expensePackage: expensePackagePDA,
+      owner: user.publicKey,
+    },
+    signers: signers(program, [user]),
+  });
+  return { expensePackagePDA };
 }
 
 describe("slide", () => {
@@ -262,8 +253,10 @@ describe("slide", () => {
   const program = anchor.workspace.Slide as Program<Slide>;
 
   it("creates user data with correct initial values", async () => {
-    const { user, userDataPDA } = await initializeUser(
+    const user = await getFundedAccount(program);
+    const { userDataPDA } = await initializeUser(
       program,
+      user,
       "0x63problems",
       "me"
     );
@@ -274,8 +267,10 @@ describe("slide", () => {
     expect(userData.accountType).to.eql({ userData: {} });
   });
   it("creates expense manager with correct initial values", async () => {
-    const { authority, expenseManagerPDA } = await createExpenseManager(
+    const authority = await getFundedAccount(program);
+    const { expenseManagerPDA } = await createExpenseManager(
       program,
+      authority,
       "testing manager"
     );
     let expenseManagerData = await program.account.expenseManager.fetch(
@@ -288,14 +283,16 @@ describe("slide", () => {
     expect(expenseManagerData.tokenPayout).to.be.null;
   });
   it("creates an expense package with correct initial values", async () => {
-    const { authority, expenseManagerPDA } = await createExpenseManager(
+    const authority = await getFundedAccount(program);
+    const { expenseManagerPDA } = await createExpenseManager(
       program,
+      authority,
       "testing manager 2"
     );
     const { expensePackagePDA } = await createExpensePackage(
       program,
+      authority,
       1,
-      authority.publicKey,
       "testing manager 2"
     );
     let expensePackageData = await program.account.expensePackage.fetch(
@@ -308,20 +305,17 @@ describe("slide", () => {
     expect(expensePackageData.tokenAuthority).to.be.null;
   });
   it("updates an expense package and retrieves correct values", async () => {
-    const { authority, expenseManagerPDA } = await createExpenseManager(
+    const authority = await getFundedAccount(program);
+    const { expenseManagerPDA } = await createExpenseManager(
       program,
+      authority,
       "testing manager 3"
     );
-    await createExpensePackage(
-      program,
-      1,
-      authority.publicKey,
-      "testing manager 3"
-    );
-    const tokenAuthority = anchor.web3.Keypair.generate();
+    await createExpensePackage(program, authority, 1, "testing manager 3");
+    const tokenAuthority = await getFundedAccount(program);
     const { expensePackagePDA } = await updateExpensePackage(
       program,
-      authority.publicKey,
+      authority,
       "mypackage",
       "this is an expense package",
       1000,
@@ -337,22 +331,21 @@ describe("slide", () => {
       "this is an expense package"
     );
     expect(expensePackageData.quantity.toNumber()).to.equal(1000);
+    assert(expensePackageData.tokenAuthority !== null);
+    // @ts-ignore
     assert(expensePackageData.tokenAuthority.equals(tokenAuthority.publicKey));
   });
   it("submits an expense package and retrieves correctly updated state", async () => {
-    const { authority, expenseManagerPDA } = await createExpenseManager(
+    const authority = await getFundedAccount(program);
+    const { expenseManagerPDA } = await createExpenseManager(
       program,
+      authority,
       "testing manager 4"
     );
-    await createExpensePackage(
-      program,
-      1,
-      authority.publicKey,
-      "testing manager 4"
-    );
+    await createExpensePackage(program, authority, 1, "testing manager 4");
     const { expensePackagePDA } = await submitExpensePackage(
       program,
-      authority.publicKey,
+      authority,
       expenseManagerPDA,
       1
     );
@@ -362,56 +355,40 @@ describe("slide", () => {
     expect(expensePackageData.state).to.eql({ pending: {} });
   });
   it("approves an expense package and retrieves correctly updated state", async () => {
-    const { authority, expenseManagerPDA } = await createExpenseManager(
+    const authority = await getFundedAccount(program);
+    const { expenseManagerPDA } = await createExpenseManager(
       program,
+      authority,
       "testing manager 5"
     );
     const { expensePackagePDA } = await createExpensePackage(
       program,
-      1,
-      authority.publicKey,
-      "testing manager 5"
-    );
-    await submitExpensePackage(
-      program,
-      authority.publicKey,
-      expenseManagerPDA,
-      1
-    );
-    await approveExpensePackage(
-      program,
-      authority.publicKey,
+      authority,
       1,
       "testing manager 5"
     );
+    await submitExpensePackage(program, authority, expenseManagerPDA, 1);
+    await approveExpensePackage(program, authority, 1, "testing manager 5");
     let expensePackageData = await program.account.expensePackage.fetch(
       expensePackagePDA
     );
     expect(expensePackageData.state).to.eql({ approved: {} });
   });
   it("denies an expense package and retrieves correctly updated state", async () => {
-    const { authority, expenseManagerPDA } = await createExpenseManager(
+    const authority = await getFundedAccount(program);
+    const { expenseManagerPDA } = await createExpenseManager(
       program,
+      authority,
       "testing manager 6"
     );
     const { expensePackagePDA } = await createExpensePackage(
       program,
-      1,
-      authority.publicKey,
-      "testing manager 6"
-    );
-    await submitExpensePackage(
-      program,
-      authority.publicKey,
-      expenseManagerPDA,
-      1
-    );
-    await denyExpensePackage(
-      program,
-      authority.publicKey,
+      authority,
       1,
       "testing manager 6"
     );
+    await submitExpensePackage(program, authority, expenseManagerPDA, 1);
+    await denyExpensePackage(program, authority, 1, "testing manager 6");
     let expensePackageData = await program.account.expensePackage.fetch(
       expensePackagePDA
     );
@@ -419,25 +396,23 @@ describe("slide", () => {
   });
   it("creates, submits, and approves an expense package and withdraws funds", async () => {
     const expenseAmount = 10000;
-    const { authority, expenseManagerPDA } = await createExpenseManager(
+    const authority = await getFundedAccount(program);
+    const { expenseManagerPDA } = await createExpenseManager(
       program,
+      authority,
       "testing manager 7"
     );
     await transfer(
       program,
       authority.publicKey,
       expenseManagerPDA,
+      authority,
       expenseAmount * 2
     );
-    await createExpensePackage(
-      program,
-      1,
-      authority.publicKey,
-      "testing manager 7"
-    );
+    await createExpensePackage(program, authority, 1, "testing manager 7");
     await updateExpensePackage(
       program,
-      authority.publicKey,
+      authority,
       "mypackage",
       "this is an expense package",
       expenseAmount,
@@ -447,7 +422,7 @@ describe("slide", () => {
     );
     const { expensePackagePDA } = await submitExpensePackage(
       program,
-      authority.publicKey,
+      authority,
       expenseManagerPDA,
       1
     );
@@ -459,12 +434,7 @@ describe("slide", () => {
       program,
       expensePackagePDA
     );
-    await approveExpensePackage(
-      program,
-      authority.publicKey,
-      1,
-      "testing manager 7"
-    );
+    await approveExpensePackage(program, authority, 1, "testing manager 7");
     const managerBalanceAfterApproval = await getBalance(
       program,
       expenseManagerPDA
@@ -487,12 +457,7 @@ describe("slide", () => {
       program,
       authority.publicKey
     );
-    const { fee } = await withdrawFromExpensePackage(
-      program,
-      authority.publicKey,
-      1,
-      expenseManagerPDA
-    );
+    await withdrawFromExpensePackage(program, authority, 1, expenseManagerPDA);
 
     const packageBalanceAfterWithdrawal = await getBalance(
       program,
@@ -505,15 +470,8 @@ describe("slide", () => {
     expect(
       packageBalanceBeforeWithdrawal - packageBalanceAfterWithdrawal
     ).to.equal(expenseAmount);
-    // figure out how to test with user balance...
-    // one way would be to burn a bunch of SOL off-the-bat
-    // another is to use a generated keypair for everything
-    // (includes passing as signer)
-    // expect(
-    //   toBN(userBalanceAfterWithdrawal)
-    //     .sub(toBN(userBalanceBeforeWithdrawal))
-    //     .add(toBN(fee))
-    //     .toString()
-    // ).to.equal(expenseAmount);
+    expect(userBalanceAfterWithdrawal - userBalanceBeforeWithdrawal).to.equal(
+      expenseAmount
+    );
   });
 });

@@ -6,6 +6,7 @@ use anchor_lang::prelude::*;
 pub struct InitializeUser<'info> {
     #[account(init, seeds = [b"user_data", user.key().as_ref()], bump = bump, payer = user, space = UserData::MAX_SIZE + 8)]
     pub user_data: Account<'info, UserData>,
+    #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -15,6 +16,7 @@ pub struct InitializeUser<'info> {
 pub struct CreateExpenseManager<'info> {
     #[account(init, seeds = [b"expense_manager", name.as_bytes()], bump = bump, payer = authority, space = ExpenseManager::MAX_SIZE + 8)]
     pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -26,6 +28,7 @@ pub struct CreateExpensePackage<'info> {
     pub expense_package: Account<'info, ExpensePackage>,
     #[account(seeds = [b"expense_manager", manager_name.as_bytes()], bump = manager_bump)]
     pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(mut)]
     pub owner: Signer<'info>,
     pub system_program: Program<'info, System>,
 }

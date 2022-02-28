@@ -1,11 +1,21 @@
 import { BN, Program } from "@project-serum/anchor";
-import { AccountInfo, PublicKey } from "@solana/web3.js";
+import { Wallet } from "@project-serum/anchor/src/provider";
+import { AccountInfo, Keypair, PublicKey } from "@solana/web3.js";
 import { Slide } from "../target/types/slide";
 
 import * as anchor from "@project-serum/anchor";
 
+export type Payer = Keypair | Wallet;
+
 export function toBN(num: number) {
   return new BN(`${num}`, 10);
+}
+
+export function signers(program: Program<Slide>, keypairs: Payer[]): Keypair[] {
+  // @ts-ignore
+  return keypairs.filter(
+    (keypair) => !keypair.publicKey.equals(program.provider.wallet.publicKey)
+  );
 }
 
 export async function getBalanceSum(
@@ -45,6 +55,7 @@ export async function transfer(
   program: Program<Slide>,
   from: PublicKey,
   to: PublicKey,
+  payer: Payer,
   lamports: number
 ) {
   let transaction = new anchor.web3.Transaction();
@@ -55,7 +66,23 @@ export async function transfer(
       lamports,
     })
   );
-  await program.provider.send(transaction);
+  await program.provider.send(transaction, signers(program, [payer]));
+}
+
+export async function getFundedAccount(
+  program: Program<Slide>,
+  quantity?: number
+): Promise<Keypair> {
+  const account = anchor.web3.Keypair.generate();
+  const providerWallet = program.provider.wallet;
+  await transfer(
+    program,
+    providerWallet.publicKey,
+    account.publicKey,
+    providerWallet,
+    quantity ?? 5_000_000_000
+  );
+  return account;
 }
 
 export function getUserDataAddressAndBump(
