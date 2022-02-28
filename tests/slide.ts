@@ -1,45 +1,21 @@
 import { PublicKey } from "@solana/web3.js";
 import * as anchor from "@project-serum/anchor";
-import { BN, Program } from "@project-serum/anchor";
+import { Program } from "@project-serum/anchor";
 import { Slide } from "../target/types/slide";
 import { assert, expect } from "chai";
+import {
+  getBalance,
+  getExpenseManagerAddressAndBump,
+  getExpensePackageAddressAndBump,
+  getUserDataAddressAndBump,
+  toBN,
+  transfer,
+} from "./utils";
 
-function getUserDataAddressAndBump(
-  user: PublicKey,
-  programId: PublicKey
-): [PublicKey, number] {
-  return anchor.utils.publicKey.findProgramAddressSync(
-    [Buffer.from("user_data"), user.toBuffer()],
-    programId
-  );
-}
-
-function getExpenseManagerAddressAndBump(
-  name: string,
-  programId: PublicKey
-): [PublicKey, number] {
-  return anchor.utils.publicKey.findProgramAddressSync(
-    [Buffer.from("expense_manager"), Buffer.from(name)],
-    programId
-  );
-}
-
-function getExpensePackageAddressAndBump(
-  expenseManagerPDA: anchor.web3.PublicKey,
-  owner: anchor.web3.PublicKey,
-  nonce: number,
-  programId: PublicKey
-): [PublicKey, number] {
-  return anchor.utils.publicKey.findProgramAddressSync(
-    [
-      Buffer.from("expense_package"),
-      expenseManagerPDA.toBuffer(),
-      owner.toBuffer(),
-      Buffer.from([nonce]),
-    ],
-    programId
-  );
-}
+/*
+ * Issues
+ * - doesn't seem to include new blockhash between tests? getting dupe txn errors
+ * */
 
 async function initializeUser(
   program: Program<Slide>,
@@ -98,7 +74,7 @@ async function createExpensePackage(
     nonce,
     program.programId
   );
-  await program.rpc.createExpensePackage(
+  const txn = await program.transaction.createExpensePackage(
     nonce,
     managerName,
     managerBump,
@@ -113,8 +89,13 @@ async function createExpensePackage(
       signers: [],
     }
   );
+  await program.provider.send(txn);
+  const feeInfo = await program.provider.connection.getFeeForMessage(
+    txn.compileMessage()
+  );
   return {
     expensePackagePDA,
+    fee: feeInfo.value,
   };
 }
 
@@ -123,11 +104,12 @@ async function updateExpensePackage(
   user: anchor.web3.PublicKey,
   name: string,
   description: string,
-  quantity: BN,
+  quantity: number,
   tokenAuthority: PublicKey | null,
   expenseManagerPDA: PublicKey,
   nonce: number
 ) {
+  const quantityBN = toBN(quantity);
   const [expensePackagePDA, bump] = getExpensePackageAddressAndBump(
     expenseManagerPDA,
     user,
@@ -137,7 +119,7 @@ async function updateExpensePackage(
   await program.rpc.updateExpensePackage(
     name,
     description,
-    quantity,
+    quantityBN,
     tokenAuthority,
     expenseManagerPDA,
     nonce,
@@ -243,6 +225,37 @@ async function denyExpensePackage(
   return { expensePackagePDA };
 }
 
+async function withdrawFromExpensePackage(
+  program: Program<Slide>,
+  user: PublicKey,
+  nonce: number,
+  expenseManagerPDA
+) {
+  const [expensePackagePDA, bump] = getExpensePackageAddressAndBump(
+    expenseManagerPDA,
+    user,
+    nonce,
+    program.programId
+  );
+  const txn = program.transaction.withdrawFromExpensePackage(
+    expenseManagerPDA,
+    nonce,
+    bump,
+    {
+      accounts: {
+        expensePackage: expensePackagePDA,
+        owner: user,
+      },
+      signers: [],
+    }
+  );
+  await program.provider.send(txn);
+  const feeInfo = await program.provider.connection.getFeeForMessage(
+    txn.compileMessage()
+  );
+  return { expensePackagePDA, fee: feeInfo.value };
+}
+
 describe("slide", () => {
   anchor.setProvider(anchor.Provider.env());
 
@@ -311,7 +324,7 @@ describe("slide", () => {
       authority.publicKey,
       "mypackage",
       "this is an expense package",
-      new BN("1000", 10),
+      1000,
       tokenAuthority.publicKey,
       expenseManagerPDA,
       1
@@ -403,5 +416,104 @@ describe("slide", () => {
       expensePackagePDA
     );
     expect(expensePackageData.state).to.eql({ denied: {} });
+  });
+  it("creates, submits, and approves an expense package and withdraws funds", async () => {
+    const expenseAmount = 10000;
+    const { authority, expenseManagerPDA } = await createExpenseManager(
+      program,
+      "testing manager 7"
+    );
+    await transfer(
+      program,
+      authority.publicKey,
+      expenseManagerPDA,
+      expenseAmount * 2
+    );
+    await createExpensePackage(
+      program,
+      1,
+      authority.publicKey,
+      "testing manager 7"
+    );
+    await updateExpensePackage(
+      program,
+      authority.publicKey,
+      "mypackage",
+      "this is an expense package",
+      expenseAmount,
+      null,
+      expenseManagerPDA,
+      1
+    );
+    const { expensePackagePDA } = await submitExpensePackage(
+      program,
+      authority.publicKey,
+      expenseManagerPDA,
+      1
+    );
+    const managerBalanceBeforeApproval = await getBalance(
+      program,
+      expenseManagerPDA
+    );
+    const packageBalanceBeforeApproval = await getBalance(
+      program,
+      expensePackagePDA
+    );
+    await approveExpensePackage(
+      program,
+      authority.publicKey,
+      1,
+      "testing manager 7"
+    );
+    const managerBalanceAfterApproval = await getBalance(
+      program,
+      expenseManagerPDA
+    );
+    const packageBalanceAfterApproval = await getBalance(
+      program,
+      expensePackagePDA
+    );
+    expect(packageBalanceAfterApproval - packageBalanceBeforeApproval).to.equal(
+      expenseAmount
+    );
+    expect(managerBalanceBeforeApproval - managerBalanceAfterApproval).to.equal(
+      expenseAmount
+    );
+    const packageBalanceBeforeWithdrawal = await getBalance(
+      program,
+      expensePackagePDA
+    );
+    const userBalanceBeforeWithdrawal = await getBalance(
+      program,
+      authority.publicKey
+    );
+    const { fee } = await withdrawFromExpensePackage(
+      program,
+      authority.publicKey,
+      1,
+      expenseManagerPDA
+    );
+
+    const packageBalanceAfterWithdrawal = await getBalance(
+      program,
+      expensePackagePDA
+    );
+    const userBalanceAfterWithdrawal = await getBalance(
+      program,
+      authority.publicKey
+    );
+    expect(
+      packageBalanceBeforeWithdrawal - packageBalanceAfterWithdrawal
+    ).to.equal(expenseAmount);
+    // figure out how to test with user balance...
+    // one way would be to burn a bunch of SOL off-the-bat
+    // another is to use a generated keypair for everything
+    // (includes passing as signer)
+    // expect(
+    //   toBN(userBalanceAfterWithdrawal)
+    //     .sub(toBN(userBalanceBeforeWithdrawal))
+    //     .add(toBN(fee))
+    //     .toString()
+    // ).to.equal(expenseAmount);
   });
 });

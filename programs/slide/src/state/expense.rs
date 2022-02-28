@@ -48,15 +48,16 @@ impl ExpensePackage {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
 pub enum ExpensePackageState {
-    CREATED,
-    PENDING,
-    DENIED,
-    APPROVED,
-    PAID,
+    Created,
+    Pending,
+    Denied,
+    Approved,
+    AutoApproved,
+    Paid,
 }
 
 impl Default for ExpensePackageState {
     fn default() -> Self {
-        Self::CREATED
+        Self::Created
     }
 }

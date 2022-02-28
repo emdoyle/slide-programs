@@ -14,5 +14,11 @@ pub enum SlideError {
     PackageAlreadyExists,
     #[msg("ExpensePackage has already been submitted or is otherwise locked")]
     PackageFrozen,
+    #[msg("ExpensePackage has not been manually approved")]
+    PackageNotApproved,
+    #[msg("Token operations are not implemented yet!")]
+    TokensNotImplemented,
+    #[msg("Insufficient funds exist in the manager to approve this expense")]
+    ManagerInsufficientFunds,
     DataTooLarge,
 }
