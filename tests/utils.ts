@@ -5,6 +5,9 @@ import { Slide } from "../target/types/slide";
 
 import * as anchor from "@project-serum/anchor";
 
+export const IS_LOCAL = process.env.ANCHOR_PROVIDER_URL.includes("localhost");
+export const DEFAULT_FUNDING_PER_TEST = IS_LOCAL ? 5_000_000_000 : 500_000_000;
+
 export type Payer = Keypair | Wallet;
 
 export function toBN(num: number) {
@@ -80,7 +83,7 @@ export async function getFundedAccount(
     providerWallet.publicKey,
     account.publicKey,
     providerWallet,
-    quantity ?? 5_000_000_000
+    quantity ?? DEFAULT_FUNDING_PER_TEST
   );
   return account;
 }
