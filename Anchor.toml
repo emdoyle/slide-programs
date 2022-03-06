@@ -10,3 +10,12 @@ wallet = "/Users/evanmdoyle/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[test.validator]
+url = "d"
+
+[[test.validator.clone]]
+address = "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"
+
+[[test.validator.clone]]
+address = "SQDSm7ifFqwmgxY5aL59BtHcBGHEgbg5thh4Y9ytdn3"

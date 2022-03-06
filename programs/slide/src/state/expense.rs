@@ -1,49 +1,41 @@
-use super::account_type::AccountType;
 use anchor_lang::prelude::*;
 
 #[account]
 #[derive(Default, Eq, PartialEq)]
 pub struct ExpenseManager {
-    pub account_type: AccountType,
     pub name: String,
-    pub authority: Pubkey,
-    pub native_payout: bool,
-    pub token_payout: Option<Pubkey>,
-    // pub payout_lockup_period -- look into time types
+    pub membership_token_mint: Pubkey,
+    pub expense_package_nonce: u16,
+    pub squad: Option<Pubkey>,
+    pub realm: Option<Pubkey>,
+    pub governance_authority: Option<Pubkey>,
 }
 
 impl ExpenseManager {
-    // account_type: 1
     // name: 64
-    // authority: 32
-    // native_payout: 1
-    // token_payout: 32
-    pub const MAX_SIZE: usize = 1 + 64 + 32 + 1 + 32;
+    // membership_token_mint: 32
+    // expense_package_nonce: 2
+    // squad: 33
+    // realm: 33
+    // governance_authority: 33
+    pub const MAX_SIZE: usize = 64 + 32 + 2 + 33 + 33 + 33;
 }
 
 #[account]
 #[derive(Default, Eq, PartialEq)]
 pub struct ExpensePackage {
-    pub account_type: AccountType,
     pub name: String,
     pub description: String,
-    pub owner: Pubkey,
-    pub expense_manager: Pubkey,
     pub state: ExpensePackageState,
     pub quantity: u64,
-    pub token_authority: Option<Pubkey>,
 }
 
 impl ExpensePackage {
-    // account_type: 1
     // name: 64
     // description: 256
-    // owner: 32
-    // expense_manager: 32
     // state: 1
-    // quantity: 64
-    // token_authority: 32
-    pub const MAX_SIZE: usize = 1 + 64 + 256 + 32 + 32 + 1 + 64 + 32;
+    // quantity: 8
+    pub const MAX_SIZE: usize = 64 + 256 + 1 + 8;
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]

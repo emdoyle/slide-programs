@@ -1,0 +1,3 @@
+// need:
+//  - Proposal
+//  - MemberEquityRecord  --> this may just be a TokenAccount though...
