@@ -13,7 +13,16 @@ import {
   signers,
   toBN,
   transfer,
+  SPL_GOV_PROGRAM_ID,
+  SQUADS_PROGRAM_ID,
 } from "./utils";
+import { getRealms } from "@solana/spl-governance";
+import { createMint, mintTo } from "@solana/spl-token";
+
+/*
+ * Notes
+ * - connection.requestAirdrop could be useful instead of funding from provider wallet (might slow down tests tho)
+ */
 
 /*
  * Issues
@@ -83,13 +92,18 @@ describe("slide", () => {
     assert(userData.user.equals(user.publicKey));
   });
   it("creates expense manager with correct initial values", async () => {
-    // TODO: actually initialize a mint, verify on-chain
-    const membership_token_mint = anchor.web3.Keypair.generate();
     const payer = await getFundedAccount(program);
-    // TODO: membership_token_mint
+    // NOTE: some pubkey needs to be the authority over the mint itself
+    const membership_token_mint = await createMint(
+      program.provider.connection,
+      payer,
+      payer.publicKey,
+      null,
+      9
+    );
     const { expenseManagerPDA } = await createExpenseManager(
       program,
-      membership_token_mint.publicKey,
+      membership_token_mint,
       payer,
       "testing manager"
     );

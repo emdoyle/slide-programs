@@ -8,6 +8,13 @@ import * as anchor from "@project-serum/anchor";
 export const IS_LOCAL = process.env.ANCHOR_PROVIDER_URL.includes("localhost");
 export const DEFAULT_FUNDING_PER_TEST = IS_LOCAL ? 5_000_000_000 : 500_000_000;
 
+export const SPL_GOV_PROGRAM_ID = new PublicKey(
+  "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"
+);
+export const SQUADS_PROGRAM_ID = new PublicKey(
+  "SQDSm7ifFqwmgxY5aL59BtHcBGHEgbg5thh4Y9ytdn3"
+);
+
 export type Payer = Keypair | Wallet;
 
 export function toBN(num: number) {
