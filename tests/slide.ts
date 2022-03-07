@@ -160,7 +160,6 @@ describe("slide", () => {
   });
   it("creates expense manager with correct initial values", async () => {
     const payer = await getFundedAccount(program);
-    // NOTE: some pubkey needs to be the authority over the mint itself
     const membership_token_mint = await createMint(
       program.provider.connection,
       payer,

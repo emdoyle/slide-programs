@@ -49,12 +49,6 @@ pub mod slide {
         governance_authority: Pubkey,
         _token_owner_bump: u8,
     ) -> Result<()> {
-        let token_owner_record = &ctx.accounts.token_owner_record;
-        // TODO: should tokens need to be deposited in governance for this membership check?
-        require!(
-            token_owner_record.governing_token_deposit_amount > 0,
-            SlideError::UserIsNotDAOMember
-        );
         let expense_manager = &mut ctx.accounts.expense_manager;
         expense_manager.realm = Some(realm);
         expense_manager.governance_authority = Some(governance_authority);

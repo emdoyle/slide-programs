@@ -1,4 +1,5 @@
 use crate::state::*;
+use crate::utils::*;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -6,7 +7,12 @@ use anchor_lang::prelude::*;
 pub struct SPLGovInitializeExpenseManager<'info> {
     #[account(mut, seeds = [b"expense_manager", name.as_bytes()], bump = expense_manager.bump)]
     pub expense_manager: Account<'info, ExpenseManager>,
-    #[account(seeds = [b"governance", realm.as_ref(), expense_manager.membership_token_mint.as_ref(), member.key().as_ref()], bump = token_owner_bump, seeds::program = SPL_GOV_PROGRAM_ID)]
+    #[account(
+        seeds = [b"governance", realm.as_ref(), expense_manager.membership_token_mint.as_ref(), member.key().as_ref()],
+        bump = token_owner_bump,
+        seeds::program = SPL_GOV_PROGRAM_ID,
+        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember
+    )]
     pub token_owner_record: Account<'info, TokenOwnerRecord>,
     #[account(mut)]
     pub member: Signer<'info>,
