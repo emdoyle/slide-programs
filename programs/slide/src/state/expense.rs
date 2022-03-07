@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 #[account]
-#[derive(Default, Eq, PartialEq)]
+#[derive(Debug, Default, Eq, PartialEq)]
 pub struct ExpenseManager {
     pub bump: u8,
     pub name: String,
@@ -24,7 +24,7 @@ impl ExpenseManager {
 }
 
 #[account]
-#[derive(Default, Eq, PartialEq)]
+#[derive(Debug, Default, Eq, PartialEq)]
 pub struct ExpensePackage {
     pub bump: u8,
     pub name: String,
@@ -42,7 +42,7 @@ impl ExpensePackage {
     pub const MAX_SIZE: usize = 1 + 64 + 256 + 1 + 8;
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
 pub enum ExpensePackageState {
     Created,
     Pending,

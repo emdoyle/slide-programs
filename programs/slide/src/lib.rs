@@ -12,6 +12,9 @@ use utils::*;
 // localnet
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
+// TODO: out-of-space errors (on dynamic stuff like strings)
+//   does this need to be handled explicitly?
+
 #[program]
 pub mod slide {
     use super::*;
@@ -21,10 +24,6 @@ pub mod slide {
         real_name: String,
     ) -> Result<()> {
         let user_data = &mut ctx.accounts.user_data;
-        require!(
-            AsRef::<UserData>::as_ref(user_data) == &UserData::default(),
-            SlideError::UserDataAlreadyExists
-        );
         let user = &ctx.accounts.user;
         user_data.username = username;
         user_data.real_name = real_name;
@@ -38,18 +37,27 @@ pub mod slide {
         membership_token_mint: Pubkey,
     ) -> Result<()> {
         let expense_manager = &mut ctx.accounts.expense_manager;
-        require!(
-            AsRef::<ExpenseManager>::as_ref(expense_manager) == &ExpenseManager::default(),
-            SlideError::ManagerAlreadyExists
-        );
-        // TODO: check if name is too large and send meaningful error code
         expense_manager.name = name;
         expense_manager.membership_token_mint = membership_token_mint;
         expense_manager.bump = *ctx.bumps.get("expense_manager").unwrap();
         Ok(())
     }
-    pub fn test_spl_gov(ctx: Context<TestSPLGov>) -> Result<()> {
-        msg!("{:?}", ctx.accounts.token_owner_record);
+    pub fn spl_gov_initialize_expense_manager(
+        ctx: Context<SPLGovInitializeExpenseManager>,
+        _name: String,
+        realm: Pubkey,
+        governance_authority: Pubkey,
+        _token_owner_bump: u8,
+    ) -> Result<()> {
+        let token_owner_record = &ctx.accounts.token_owner_record;
+        // TODO: should tokens need to be deposited in governance for this membership check?
+        require!(
+            token_owner_record.governing_token_deposit_amount > 0,
+            SlideError::UserIsNotDAOMember
+        );
+        let expense_manager = &mut ctx.accounts.expense_manager;
+        expense_manager.realm = Some(realm);
+        expense_manager.governance_authority = Some(governance_authority);
         Ok(())
     }
     // pub fn create_expense_package(

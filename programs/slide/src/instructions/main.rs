@@ -20,11 +20,6 @@ pub struct CreateExpenseManager<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[derive(Accounts)]
-pub struct TestSPLGov<'info> {
-    pub token_owner_record: Account<'info, TokenOwnerRecord>,
-}
-
 // #[derive(Accounts)]
 // #[instruction(expense_manager_address: Pubkey, nonce: u8, bump: u8)]
 // pub struct WithdrawFromExpensePackage<'info> {

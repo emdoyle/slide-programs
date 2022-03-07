@@ -1,16 +1,16 @@
-// use crate::state::*;
-// use anchor_lang::prelude::*;
-//
-// #[derive(Accounts)]
-// #[instruction(name: String, realm: Pubkey, governance_authority: Pubkey, manager_bump: u8, token_owner_bump: u8)]
-// pub struct SPLGovInitializeExpenseManager<'info> {
-//     #[account(mut, seeds = [b"expense_manager", name.as_bytes()], bump = manager_bump)]
-//     pub expense_manager: Account<'info, ExpenseManager>,
-//     #[account(seeds = [b"governance", realm.as_ref(), expense_manager.membership_token_mint.as_ref(), member.key().as_ref()], bump = token_owner_bump)]
-//     pub token_owner_record: Account<'info, TokenOwnerRecord>,
-//     #[account(mut)]
-//     pub member: Signer<'info>,
-// }
+use crate::state::*;
+use anchor_lang::prelude::*;
+
+#[derive(Accounts)]
+#[instruction(name: String, realm: Pubkey, governance_authority: Pubkey, token_owner_bump: u8)]
+pub struct SPLGovInitializeExpenseManager<'info> {
+    #[account(mut, seeds = [b"expense_manager", name.as_bytes()], bump = expense_manager.bump)]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(seeds = [b"governance", realm.as_ref(), expense_manager.membership_token_mint.as_ref(), member.key().as_ref()], bump = token_owner_bump, seeds::program = SPL_GOV_PROGRAM_ID)]
+    pub token_owner_record: Account<'info, TokenOwnerRecord>,
+    #[account(mut)]
+    pub member: Signer<'info>,
+}
 //
 // #[derive(Accounts)]
 // #[instruction(nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]

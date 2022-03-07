@@ -116,8 +116,8 @@ export function getExpenseManagerAddressAndBump(
 }
 
 export function getExpensePackageAddressAndBump(
-  expenseManagerPDA: anchor.web3.PublicKey,
-  owner: anchor.web3.PublicKey,
+  expenseManagerPDA: PublicKey,
+  owner: PublicKey,
   nonce: number,
   programId: PublicKey
 ): [PublicKey, number] {
@@ -129,5 +129,21 @@ export function getExpensePackageAddressAndBump(
       Buffer.from([nonce]),
     ],
     programId
+  );
+}
+
+export function getTokenOwnerRecordAddressAndBump(
+  realm: PublicKey,
+  mint: PublicKey,
+  member: PublicKey
+) {
+  return anchor.utils.publicKey.findProgramAddressSync(
+    [
+      Buffer.from("governance"),
+      realm.toBuffer(),
+      mint.toBuffer(),
+      member.toBuffer(),
+    ],
+    SPL_GOV_PROGRAM_ID
   );
 }

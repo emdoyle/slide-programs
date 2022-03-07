@@ -5,12 +5,10 @@
 use anchor_lang::prelude::*;
 use borsh::BorshDeserialize;
 use spl_governance::state::token_owner_record::TokenOwnerRecordV2;
-use std::io::Result as IOResult;
 use std::ops::Deref;
-use std::str::FromStr;
 
-// TODO: why do I need to 'use' FromStr if Pubkey already implements FromStr?
-pub const SPL_GOV_PROGRAM_ID: &str = "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw";
+pub const SPL_GOV_PROGRAM_ID: Pubkey =
+    solana_program::pubkey!("GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw");
 
 #[derive(Clone, Debug, BorshDeserialize)]
 pub struct TokenOwnerRecord(TokenOwnerRecordV2);
@@ -39,7 +37,7 @@ impl anchor_lang::AccountSerialize for TokenOwnerRecord {}
 
 impl anchor_lang::Owner for TokenOwnerRecord {
     fn owner() -> Pubkey {
-        Pubkey::from_str(SPL_GOV_PROGRAM_ID).unwrap()
+        SPL_GOV_PROGRAM_ID
     }
 }
 
