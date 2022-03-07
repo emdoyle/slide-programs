@@ -17,3 +17,5 @@ default = []
 
 [dependencies]
 anchor-lang = "0.20.1"
+spl-governance = { version = "2.2.2", features = ["no-entrypoint"] }
+squads-program = { git = "https://github.com/emdoyle/program", features = ["no-entrypoint"] }

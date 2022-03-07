@@ -112,4 +112,8 @@ describe("slide", () => {
     );
     expect(expenseManagerData.name).to.equal("testing manager");
   });
+  // to test the deserialization, need to:
+  // - create realm
+  // - create TokenOwnerRecord (might have to also create mint and mint some tokens)
+  // - pass the TokenOwnerRecord to an instruction that tries to deserialize it
 });
