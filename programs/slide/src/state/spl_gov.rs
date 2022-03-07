@@ -3,16 +3,16 @@
 //  - TokenOwnerRecord
 
 use anchor_lang::prelude::*;
-use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
-use spl_governance::state::enums::GovernanceAccountType;
+use borsh::BorshDeserialize;
 use spl_governance::state::token_owner_record::TokenOwnerRecordV2;
+use std::io::Result as IOResult;
 use std::ops::Deref;
 use std::str::FromStr;
 
 // TODO: why do I need to 'use' FromStr if Pubkey already implements FromStr?
 pub const SPL_GOV_PROGRAM_ID: &str = "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw";
 
-#[derive(Clone)]
+#[derive(Clone, Debug, BorshDeserialize)]
 pub struct TokenOwnerRecord(TokenOwnerRecordV2);
 
 impl TokenOwnerRecord {
@@ -22,14 +22,15 @@ impl TokenOwnerRecord {
 }
 
 impl anchor_lang::AccountDeserialize for TokenOwnerRecord {
-    fn try_deserialize_unchecked(buf: &mut &[u8]) -> Result<Self, ProgramError> {
+    fn try_deserialize_unchecked(buf: &mut &[u8]) -> Result<Self> {
         // the job is slightly more difficult here
         // need to check the account discriminator to determine if the data is v1 or v2
         // if v1:
         //   deserialize everything we have, make sure we don't panic, default reserved_v2 empty
         // if v2:
         //   deserialize normally
-        todo!()
+        let token_owner_record: TokenOwnerRecord = BorshDeserialize::deserialize(buf).unwrap();
+        Ok(token_owner_record)
     }
 }
 

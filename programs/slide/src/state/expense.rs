@@ -3,6 +3,7 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Default, Eq, PartialEq)]
 pub struct ExpenseManager {
+    pub bump: u8,
     pub name: String,
     pub membership_token_mint: Pubkey,
     pub expense_package_nonce: u16,
@@ -12,18 +13,20 @@ pub struct ExpenseManager {
 }
 
 impl ExpenseManager {
+    // bump: 1
     // name: 64
     // membership_token_mint: 32
     // expense_package_nonce: 2
     // squad: 33
     // realm: 33
     // governance_authority: 33
-    pub const MAX_SIZE: usize = 64 + 32 + 2 + 33 + 33 + 33;
+    pub const MAX_SIZE: usize = 1 + 64 + 32 + 2 + 33 + 33 + 33;
 }
 
 #[account]
 #[derive(Default, Eq, PartialEq)]
 pub struct ExpensePackage {
+    pub bump: u8,
     pub name: String,
     pub description: String,
     pub state: ExpensePackageState,
@@ -31,11 +34,12 @@ pub struct ExpensePackage {
 }
 
 impl ExpensePackage {
+    // bump: 1
     // name: 64
     // description: 256
     // state: 1
     // quantity: 8
-    pub const MAX_SIZE: usize = 64 + 256 + 1 + 8;
+    pub const MAX_SIZE: usize = 1 + 64 + 256 + 1 + 8;
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]

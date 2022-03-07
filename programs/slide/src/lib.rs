@@ -19,8 +19,7 @@ pub mod slide {
         ctx: Context<InitializeUser>,
         username: String,
         real_name: String,
-        _bump: u8,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let user_data = &mut ctx.accounts.user_data;
         require!(
             AsRef::<UserData>::as_ref(user_data) == &UserData::default(),
@@ -30,14 +29,14 @@ pub mod slide {
         user_data.username = username;
         user_data.real_name = real_name;
         user_data.user = user.key();
+        user_data.bump = *ctx.bumps.get("user_data").unwrap();
         Ok(())
     }
     pub fn create_expense_manager(
         ctx: Context<CreateExpenseManager>,
         name: String,
         membership_token_mint: Pubkey,
-        _bump: u8,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let expense_manager = &mut ctx.accounts.expense_manager;
         require!(
             AsRef::<ExpenseManager>::as_ref(expense_manager) == &ExpenseManager::default(),
@@ -46,6 +45,11 @@ pub mod slide {
         // TODO: check if name is too large and send meaningful error code
         expense_manager.name = name;
         expense_manager.membership_token_mint = membership_token_mint;
+        expense_manager.bump = *ctx.bumps.get("expense_manager").unwrap();
+        Ok(())
+    }
+    pub fn test_spl_gov(ctx: Context<TestSPLGov>) -> Result<()> {
+        msg!("{:?}", ctx.accounts.token_owner_record);
         Ok(())
     }
     // pub fn create_expense_package(
@@ -54,7 +58,7 @@ pub mod slide {
     //     _manager_name: String,
     //     _manager_bump: u8,
     //     _package_bump: u8,
-    // ) -> ProgramResult {
+    // ) -> Result<()> {
     //     // TODO: how to authorize a user to create an expense package? --> mint authority on Manager
     //     let expense_package = &mut ctx.accounts.expense_package;
     //     require!(
@@ -76,7 +80,7 @@ pub mod slide {
     //     expense_manager_address: Pubkey,
     //     _nonce: u8,
     //     _bump: u8,
-    // ) -> ProgramResult {
+    // ) -> Result<()> {
     //     let expense_package = &mut ctx.accounts.expense_package;
     //     let owner = &ctx.accounts.owner;
     //     // TODO: not sure if this check is necessary
@@ -96,7 +100,7 @@ pub mod slide {
     //     _expense_manager_address: Pubkey,
     //     _nonce: u8,
     //     _bump: u8,
-    // ) -> ProgramResult {
+    // ) -> Result<()> {
     //     let expense_package = &mut ctx.accounts.expense_package;
     //     require!(
     //         expense_package.state == ExpensePackageState::Created,
@@ -113,7 +117,7 @@ pub mod slide {
     //     _manager_name: String,
     //     _manager_bump: u8,
     //     _package_bump: u8,
-    // ) -> ProgramResult {
+    // ) -> Result<()> {
     //     let expense_package = &mut ctx.accounts.expense_package;
     //     let expense_manager = &mut ctx.accounts.expense_manager;
     //     require!(
@@ -136,7 +140,7 @@ pub mod slide {
     //     _manager_name: String,
     //     _manager_bump: u8,
     //     _package_bump: u8,
-    // ) -> ProgramResult {
+    // ) -> Result<()> {
     //     let expense_package = &mut ctx.accounts.expense_package;
     //     let expense_manager = &ctx.accounts.expense_manager;
     //     require!(
@@ -151,7 +155,7 @@ pub mod slide {
     //     _expense_manager_address: Pubkey,
     //     _nonce: u8,
     //     _bump: u8,
-    // ) -> ProgramResult {
+    // ) -> Result<()> {
     //     let expense_package = &mut ctx.accounts.expense_package;
     //     require!(
     //         expense_package.token_authority == None,

@@ -1,6 +1,6 @@
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Transaction } from "@solana/web3.js";
 import * as anchor from "@project-serum/anchor";
-import { Program } from "@project-serum/anchor";
+import { BN, Program } from "@project-serum/anchor";
 import { Slide } from "../target/types/slide";
 import { assert, expect } from "chai";
 import {
@@ -15,9 +15,15 @@ import {
   transfer,
   SPL_GOV_PROGRAM_ID,
   SQUADS_PROGRAM_ID,
+  getAccountInfo,
 } from "./utils";
-import { getRealms } from "@solana/spl-governance";
+import {
+  getRealms,
+  withCreateRealm,
+  withCreateTokenOwnerRecord,
+} from "@solana/spl-governance";
 import { createMint, mintTo } from "@solana/spl-token";
+import { MintMaxVoteWeightSource } from "@solana/spl-governance/lib/governance/accounts";
 
 /*
  * Notes
@@ -35,11 +41,11 @@ async function initializeUser(
   username: string,
   realName: string
 ) {
-  const [userDataPDA, bump] = getUserDataAddressAndBump(
+  const [userDataPDA] = getUserDataAddressAndBump(
     user.publicKey,
     program.programId
   );
-  await program.rpc.initializeUser(username, realName, bump, {
+  await program.rpc.initializeUser(username, realName, {
     accounts: {
       userData: userDataPDA,
       user: user.publicKey,
@@ -56,11 +62,11 @@ async function createExpenseManager(
   payer: Payer,
   name: string
 ) {
-  const [expenseManagerPDA, bump] = getExpenseManagerAddressAndBump(
+  const [expenseManagerPDA] = getExpenseManagerAddressAndBump(
     name,
     program.programId
   );
-  await program.rpc.createExpenseManager(name, membership_token_mint, bump, {
+  await program.rpc.createExpenseManager(name, membership_token_mint, {
     accounts: {
       expenseManager: expenseManagerPDA,
       payer: payer.publicKey,
@@ -78,42 +84,79 @@ describe("slide", () => {
 
   const program = anchor.workspace.Slide as Program<Slide>;
 
-  it("creates user data with correct initial values", async () => {
+  // it("creates user data with correct initial values", async () => {
+  //   const user = await getFundedAccount(program);
+  //   const { userDataPDA } = await initializeUser(
+  //     program,
+  //     user,
+  //     "0x63problems",
+  //     "me"
+  //   );
+  //   let userData = await program.account.userData.fetch(userDataPDA);
+  //   expect(userData.username).to.equal("0x63problems");
+  //   expect(userData.realName).to.equal("me");
+  //   assert(userData.user.equals(user.publicKey));
+  // });
+  // it("creates expense manager with correct initial values", async () => {
+  //   const payer = await getFundedAccount(program);
+  //   // NOTE: some pubkey needs to be the authority over the mint itself
+  //   const membership_token_mint = await createMint(
+  //     program.provider.connection,
+  //     payer,
+  //     payer.publicKey,
+  //     null,
+  //     9
+  //   );
+  //   const { expenseManagerPDA } = await createExpenseManager(
+  //     program,
+  //     membership_token_mint,
+  //     payer,
+  //     "testing manager"
+  //   );
+  //   let expenseManagerData = await program.account.expenseManager.fetch(
+  //     expenseManagerPDA
+  //   );
+  //   expect(expenseManagerData.name).to.equal("testing manager");
+  // });
+  it("can accept splgov token owner record as input", async () => {
     const user = await getFundedAccount(program);
-    const { userDataPDA } = await initializeUser(
-      program,
-      user,
-      "0x63problems",
-      "me"
-    );
-    let userData = await program.account.userData.fetch(userDataPDA);
-    expect(userData.username).to.equal("0x63problems");
-    expect(userData.realName).to.equal("me");
-    assert(userData.user.equals(user.publicKey));
-  });
-  it("creates expense manager with correct initial values", async () => {
-    const payer = await getFundedAccount(program);
-    // NOTE: some pubkey needs to be the authority over the mint itself
-    const membership_token_mint = await createMint(
+    const membershipTokenMint = await createMint(
       program.provider.connection,
-      payer,
-      payer.publicKey,
+      user,
+      user.publicKey,
       null,
       9
     );
-    const { expenseManagerPDA } = await createExpenseManager(
-      program,
-      membership_token_mint,
-      payer,
-      "testing manager"
+    const instructions = [];
+    const realm = await withCreateRealm(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      2,
+      "SPLGOVREALM",
+      user.publicKey,
+      membershipTokenMint,
+      user.publicKey,
+      undefined,
+      new MintMaxVoteWeightSource({ value: new BN("50000", 10) }),
+      new BN("100000", 10)
     );
-    let expenseManagerData = await program.account.expenseManager.fetch(
-      expenseManagerPDA
+    const tokenOwnerRecord = await withCreateTokenOwnerRecord(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      realm,
+      user.publicKey,
+      membershipTokenMint,
+      user.publicKey
     );
-    expect(expenseManagerData.name).to.equal("testing manager");
+    const txn = new Transaction();
+    txn.add(...instructions);
+    await program.provider.send(txn, signers(program, [user]));
+
+    await program.rpc.testSplGov({
+      accounts: {
+        tokenOwnerRecord,
+      },
+      signers: [],
+    });
   });
-  // to test the deserialization, need to:
-  // - create realm
-  // - create TokenOwnerRecord (might have to also create mint and mint some tokens)
-  // - pass the TokenOwnerRecord to an instruction that tries to deserialize it
 });

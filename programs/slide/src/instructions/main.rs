@@ -2,9 +2,8 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-#[instruction(username: String, real_name: String, bump: u8)]
 pub struct InitializeUser<'info> {
-    #[account(init, seeds = [b"user_data", user.key().as_ref()], bump = bump, payer = user, space = UserData::MAX_SIZE + 8)]
+    #[account(init, seeds = [b"user_data", user.key().as_ref()], bump, payer = user, space = UserData::MAX_SIZE + 8)]
     pub user_data: Account<'info, UserData>,
     #[account(mut)]
     pub user: Signer<'info>,
@@ -12,13 +11,18 @@ pub struct InitializeUser<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(name: String, membership_token_mint: Pubkey, bump: u8)]
+#[instruction(name: String)]
 pub struct CreateExpenseManager<'info> {
-    #[account(init, seeds = [b"expense_manager", name.as_bytes()], bump = bump, payer = payer, space = ExpenseManager::MAX_SIZE + 8)]
+    #[account(init, seeds = [b"expense_manager", name.as_bytes()], bump, payer = payer, space = ExpenseManager::MAX_SIZE + 8)]
     pub expense_manager: Account<'info, ExpenseManager>,
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct TestSPLGov<'info> {
+    pub token_owner_record: Account<'info, TokenOwnerRecord>,
 }
 
 // #[derive(Accounts)]

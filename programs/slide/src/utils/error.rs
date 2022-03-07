@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 // TODO: do the AlreadyExists checks need to exist?
 //   init constraint likely handles case already
-#[error]
+#[error_code]
 pub enum SlideError {
     #[msg("ExpensePackage is not owned by signer, or not related to provided expense manager")]
     PackageOwnershipMismatch,
