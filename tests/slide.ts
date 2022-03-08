@@ -14,6 +14,7 @@ import {
   SQUADS_PROGRAM_ID,
   getAccountInfo,
   getTokenOwnerRecordAddressAndBump,
+  getExpensePackageAddressAndBump,
 } from "./utils";
 import {
   withCreateRealm,
@@ -22,11 +23,7 @@ import {
 } from "@solana/spl-governance";
 import { createMint, mintTo, createAccount } from "@solana/spl-token";
 import { MintMaxVoteWeightSource } from "@solana/spl-governance/lib/governance/accounts";
-
-/*
- * Notes
- * - connection.requestAirdrop could be useful instead of funding from provider wallet (might slow down tests tho)
- */
+import { publicKey } from "@project-serum/anchor/dist/cjs/coder/spl-token/buffer-layout";
 
 async function initializeUser(
   program: Program<Slide>,
@@ -145,40 +142,79 @@ describe("slide", () => {
 
   const program = anchor.workspace.Slide as Program<Slide>;
 
-  it("creates user data with correct initial values", async () => {
-    const user = await getFundedAccount(program);
-    const { userDataPDA } = await initializeUser(
-      program,
-      user,
-      "0x63problems",
-      "me"
-    );
-    let userData = await program.account.userData.fetch(userDataPDA);
-    expect(userData.username).to.equal("0x63problems");
-    expect(userData.realName).to.equal("me");
-    assert(userData.user.equals(user.publicKey));
-  });
-  it("creates expense manager with correct initial values", async () => {
-    const payer = await getFundedAccount(program);
-    const membership_token_mint = await createMint(
-      program.provider.connection,
-      payer,
-      payer.publicKey,
-      null,
-      9
-    );
-    const { expenseManagerPDA } = await createExpenseManager(
-      program,
-      membership_token_mint,
-      payer,
-      "testing manager"
-    );
-    let expenseManagerData = await program.account.expenseManager.fetch(
-      expenseManagerPDA
-    );
-    expect(expenseManagerData.name).to.equal("testing manager");
-  });
-  it("initializes SPL Gov expense manager", async () => {
+  // it("creates user data with correct initial values", async () => {
+  //   const user = await getFundedAccount(program);
+  //   const { userDataPDA } = await initializeUser(
+  //     program,
+  //     user,
+  //     "0x63problems",
+  //     "me"
+  //   );
+  //   let userData = await program.account.userData.fetch(userDataPDA);
+  //   expect(userData.username).to.equal("0x63problems");
+  //   expect(userData.realName).to.equal("me");
+  //   assert(userData.user.equals(user.publicKey));
+  // });
+  // it("creates expense manager with correct initial values", async () => {
+  //   const payer = await getFundedAccount(program);
+  //   const membership_token_mint = await createMint(
+  //     program.provider.connection,
+  //     payer,
+  //     payer.publicKey,
+  //     null,
+  //     9
+  //   );
+  //   const { expenseManagerPDA } = await createExpenseManager(
+  //     program,
+  //     membership_token_mint,
+  //     payer,
+  //     "testing manager"
+  //   );
+  //   let expenseManagerData = await program.account.expenseManager.fetch(
+  //     expenseManagerPDA
+  //   );
+  //   expect(expenseManagerData.name).to.equal("testing manager");
+  // });
+  // it("initializes SPL Gov expense manager", async () => {
+  //   const managerName = "testing manager 2";
+  //   const user = await getFundedAccount(program);
+  //   const { realm, membershipTokenMint, tokenOwnerRecord } = await setupSPLGov(
+  //     program,
+  //     user
+  //   );
+  //   const { expenseManagerPDA } = await createExpenseManager(
+  //     program,
+  //     membershipTokenMint,
+  //     user,
+  //     managerName
+  //   );
+  //   const [, bump] = getTokenOwnerRecordAddressAndBump(
+  //     realm,
+  //     membershipTokenMint,
+  //     user.publicKey
+  //   );
+  //   await program.methods
+  //     .splGovInitializeExpenseManager(
+  //       managerName,
+  //       realm,
+  //       user.publicKey, // TODO: should be gov authority
+  //       bump
+  //     )
+  //     .accounts({
+  //       expenseManager: expenseManagerPDA,
+  //       tokenOwnerRecord,
+  //       member: user.publicKey,
+  //     })
+  //     .signers(signers(program, [user]))
+  //     .rpc();
+  //   const expenseManager = await program.account.expenseManager.fetch(
+  //     expenseManagerPDA
+  //   );
+  //   assert(expenseManager.realm.equals(realm));
+  //   assert(expenseManager.governanceAuthority.equals(user.publicKey));
+  // });
+  it("creates SPL Gov expense package", async () => {
+    const managerName = "testing manager 3";
     const user = await getFundedAccount(program);
     const { realm, membershipTokenMint, tokenOwnerRecord } = await setupSPLGov(
       program,
@@ -188,7 +224,7 @@ describe("slide", () => {
       program,
       membershipTokenMint,
       user,
-      "testing manager 2"
+      managerName
     );
     const [, bump] = getTokenOwnerRecordAddressAndBump(
       realm,
@@ -197,7 +233,7 @@ describe("slide", () => {
     );
     await program.methods
       .splGovInitializeExpenseManager(
-        "testing manager 2",
+        managerName,
         realm,
         user.publicKey, // TODO: should be gov authority
         bump
@@ -209,10 +245,30 @@ describe("slide", () => {
       })
       .signers(signers(program, [user]))
       .rpc();
+    const [expensePackagePDA, package_bump] = getExpensePackageAddressAndBump(
+      expenseManagerPDA,
+      user.publicKey,
+      0,
+      program.programId
+    );
+    await program.methods
+      .splGovCreateExpensePackage(managerName, realm, 0, bump)
+      .accounts({
+        expensePackage: expensePackagePDA,
+        expenseManager: expenseManagerPDA,
+        tokenOwnerRecord,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackage = await program.account.expensePackage.fetch(
+      expensePackagePDA
+    );
     const expenseManager = await program.account.expenseManager.fetch(
       expenseManagerPDA
     );
-    assert(expenseManager.realm.equals(realm));
-    assert(expenseManager.governanceAuthority.equals(user.publicKey));
+    expect(expensePackage.bump).to.equal(package_bump);
+    expect(expenseManager.expensePackageNonce).to.equal(1);
   });
 });

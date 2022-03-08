@@ -4,6 +4,10 @@ use anchor_lang::prelude::*;
 pub enum SlideError {
     #[msg("User does not hold the appropriate membership token")]
     UserIsNotDAOMember,
+    #[msg("Client provided incorrect nonce")]
+    IncorrectNonce,
+    #[msg("Realm does not match ExpenseManager")]
+    SPLGovRealmMismatch,
     #[msg("ExpensePackage is not owned by signer, or not related to provided expense manager")]
     PackageOwnershipMismatch,
     #[msg("ExpensePackage has already been submitted or is otherwise locked")]

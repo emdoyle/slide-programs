@@ -1,12 +1,18 @@
 import { BN, Program } from "@project-serum/anchor";
 import { Wallet } from "@project-serum/anchor/src/provider";
-import { AccountInfo, Keypair, PublicKey } from "@solana/web3.js";
+import {
+  AccountInfo,
+  Keypair,
+  PublicKey,
+  LAMPORTS_PER_SOL,
+  clusterApiUrl,
+} from "@solana/web3.js";
 import { Slide } from "../target/types/slide";
 
 import * as anchor from "@project-serum/anchor";
 
-export const IS_LOCAL = process.env.ANCHOR_PROVIDER_URL.includes("localhost");
-export const DEFAULT_FUNDING_PER_TEST = IS_LOCAL ? 5_000_000_000 : 500_000_000;
+export const IS_MAINNET =
+  process.env.ANCHOR_PROVIDER_URL == clusterApiUrl("mainnet-beta");
 
 export const SPL_GOV_PROGRAM_ID = new PublicKey(
   "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"
@@ -79,9 +85,8 @@ export async function transfer(
   await program.provider.send(transaction, signers(program, [payer]));
 }
 
-export async function getFundedAccount(
-  program: Program<Slide>,
-  quantity?: number
+async function getFundedAccountFromProgramWallet(
+  program: Program<Slide>
 ): Promise<Keypair> {
   const account = anchor.web3.Keypair.generate();
   const providerWallet = program.provider.wallet;
@@ -90,8 +95,26 @@ export async function getFundedAccount(
     providerWallet.publicKey,
     account.publicKey,
     providerWallet,
-    quantity ?? DEFAULT_FUNDING_PER_TEST
+    2 * LAMPORTS_PER_SOL
   );
+  // In case 'anchor test' is run against mainnet accidentally, this puts the secret keys of
+  // any funded accounts in the console...
+  console.log(account.secretKey);
+  return account;
+}
+
+export async function getFundedAccount(
+  program: Program<Slide>
+): Promise<Keypair> {
+  if (IS_MAINNET) {
+    return await getFundedAccountFromProgramWallet(program);
+  }
+  const account = anchor.web3.Keypair.generate();
+  const signature = await program.provider.connection.requestAirdrop(
+    account.publicKey,
+    2 * LAMPORTS_PER_SOL
+  );
+  await program.provider.connection.confirmTransaction(signature);
   return account;
 }
 
@@ -121,12 +144,14 @@ export function getExpensePackageAddressAndBump(
   nonce: number,
   programId: PublicKey
 ): [PublicKey, number] {
+  let nonceBuf = Buffer.allocUnsafe(4);
+  nonceBuf.writeInt32LE(nonce);
   return anchor.utils.publicKey.findProgramAddressSync(
     [
       Buffer.from("expense_package"),
       expenseManagerPDA.toBuffer(),
       owner.toBuffer(),
-      Buffer.from([nonce]),
+      nonceBuf,
     ],
     programId
   );

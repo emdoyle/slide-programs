@@ -54,6 +54,25 @@ pub mod slide {
         expense_manager.governance_authority = Some(governance_authority);
         Ok(())
     }
+    pub fn spl_gov_create_expense_package(
+        ctx: Context<SPLGovCreateExpensePackage>,
+        _manager_name: String,
+        _realm: Pubkey,
+        _nonce: u32, // assuming constraint has already verified nonce value
+        _token_owner_bump: u8,
+    ) -> Result<()> {
+        let expense_manager = &mut ctx.accounts.expense_manager;
+        let expense_package = &mut ctx.accounts.expense_package;
+
+        expense_package.bump = *ctx.bumps.get("expense_package").unwrap();
+
+        expense_manager.expense_package_nonce = expense_manager
+            .expense_package_nonce
+            .checked_add(1)
+            .unwrap();
+
+        Ok(())
+    }
     // pub fn create_expense_package(
     //     ctx: Context<CreateExpensePackage>,
     //     _nonce: u8,
