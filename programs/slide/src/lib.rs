@@ -73,6 +73,29 @@ pub mod slide {
 
         Ok(())
     }
+    pub fn spl_gov_update_expense_package(
+        ctx: Context<SPLGovUpdateExpensePackage>,
+        _manager_name: String,
+        _realm: Pubkey,
+        package_name: String,
+        description: String,
+        quantity: u64,
+        _nonce: u32,
+        _token_owner_bump: u8,
+    ) -> Result<()> {
+        let expense_package = &mut ctx.accounts.expense_package;
+
+        require!(
+            expense_package.state == ExpensePackageState::Created,
+            SlideError::PackageFrozen
+        );
+
+        expense_package.name = package_name;
+        expense_package.description = description;
+        expense_package.quantity = quantity;
+
+        Ok(())
+    }
     // pub fn create_expense_package(
     //     ctx: Context<CreateExpensePackage>,
     //     _nonce: u8,

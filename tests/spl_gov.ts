@@ -100,7 +100,7 @@ type SPLGovSharedData = {
   tokenBump?: number;
   expenseManager?: PublicKey;
   expensePackage?: PublicKey;
-  packageNonce?: Buffer;
+  packageNonce?: number;
 };
 
 describe("slide SPL Governance integration tests", () => {
@@ -108,6 +108,9 @@ describe("slide SPL Governance integration tests", () => {
 
   const program = anchor.workspace.Slide as Program<Slide>;
   const managerName = "SPLGOVINTEGRATIONTESTMANAGER";
+  const packageName = "SPLGOVINTEGRATIONTESTPACKAGE";
+  const packageDescription = "SPLGOVINTEGRATIONTESTPACKAGEDESCRIPTION";
+  const packageQuantity = toBN(300_000);
   const realmName = "SPLGOVINTEGRATIONTESTREALM";
   const sharedData: SPLGovSharedData = {};
 
@@ -156,11 +159,12 @@ describe("slide SPL Governance integration tests", () => {
     const expenseManager = await program.account.expenseManager.fetch(
       expenseManagerPDA
     );
-    assert(expenseManager.realm.equals(realm));
-    assert(expenseManager.governanceAuthority.equals(user.publicKey));
 
     sharedData.expenseManager = expenseManagerPDA;
     sharedData.tokenBump = bump;
+
+    assert(expenseManager.realm.equals(realm));
+    assert(expenseManager.governanceAuthority.equals(user.publicKey));
   });
   it("creates an expense package", async () => {
     const { user, realm, tokenOwnerRecord, tokenBump, expenseManager } =
@@ -188,7 +192,51 @@ describe("slide SPL Governance integration tests", () => {
     const expenseManagerData = await program.account.expenseManager.fetch(
       expenseManager
     );
+
+    sharedData.expensePackage = expensePackagePDA;
+    sharedData.packageNonce = 0;
+
     expect(expensePackageData.bump).to.equal(package_bump);
+    expect(expensePackageData.state).to.eql({ created: {} });
     expect(expenseManagerData.expensePackageNonce).to.equal(1);
+  });
+  it("updates an expense package", async () => {
+    const {
+      user,
+      realm,
+      tokenOwnerRecord,
+      tokenBump,
+      expenseManager,
+      expensePackage,
+      packageNonce,
+    } = sharedData;
+    await program.methods
+      .splGovUpdateExpensePackage(
+        managerName,
+        realm,
+        packageName,
+        packageDescription,
+        packageQuantity,
+        packageNonce,
+        tokenBump
+      )
+      .accounts({
+        expensePackage,
+        expenseManager,
+        tokenOwnerRecord,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
+
+    expect(expensePackageData.name).to.equal(packageName);
+    expect(expensePackageData.description).to.equal(packageDescription);
+    expect(expensePackageData.quantity.toString()).to.equal(
+      packageQuantity.toString()
+    );
   });
 });

@@ -43,14 +43,31 @@ pub struct SPLGovCreateExpensePackage<'info> {
     pub system_program: Program<'info, System>,
 }
 
-// #[derive(Accounts)]
-// #[instruction(name: String, description: String, quantity: u64, token_authority: Option<Pubkey>, expense_manager_address: Pubkey, nonce: u8, bump: u8)]
-// pub struct SPLGovUpdateExpensePackage<'info> {
-//     #[account(mut, seeds = [b"expense_package", expense_manager_address.as_ref(), owner.key().as_ref(), &[nonce]], bump = bump, has_one = owner)]
-//     pub expense_package: Account<'info, ExpensePackage>,
-//     pub owner: Signer<'info>,
-// }
-//
+#[derive(Accounts)]
+#[instruction(manager_name: String, realm: Pubkey, package_name: String, description: String, quantity: u64, nonce: u32, token_owner_bump: u8)]
+pub struct SPLGovUpdateExpensePackage<'info> {
+    #[account(
+        mut,
+        seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
+        bump = expense_package.bump
+    )]
+    pub expense_package: Account<'info, ExpensePackage>,
+    #[account(
+        seeds = [b"expense_manager", manager_name.as_bytes()],
+        bump = expense_manager.bump,
+        constraint = Some(realm) == expense_manager.realm @ SlideError::SPLGovRealmMismatch
+    )]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(
+        seeds = [b"governance", realm.as_ref(), expense_manager.membership_token_mint.as_ref(), owner.key().as_ref()],
+        bump = token_owner_bump,
+        seeds::program = SPL_GOV_PROGRAM_ID,
+        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember
+    )]
+    pub token_owner_record: Account<'info, TokenOwnerRecord>,
+    pub owner: Signer<'info>,
+}
+
 // #[derive(Accounts)]
 // #[instruction(expense_manager_address: Pubkey, nonce: u8, bump: u8)]
 // pub struct SPLGovSubmitExpensePackage<'info> {
