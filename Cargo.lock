@@ -1194,7 +1194,8 @@ dependencies = [
 [[package]]
 name = "squads-program"
 version = "2.0.1"
-source = "git+https://github.com/emdoyle/program#7392753fd929d3da7134f7519e1950cf0bf49894"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "836f996cd93ac713a1d4dfdcb4a64f4e34f27ea0ab28e1a095b8a6a46254a8ca"
 dependencies = [
  "arrayref",
  "borsh",
