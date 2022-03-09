@@ -55,6 +55,20 @@ pub mod slide {
         expense_manager.governance_authority = Some(governance_authority);
         Ok(())
     }
+    pub fn spl_gov_create_access_record(
+        ctx: Context<SPLGovCreateAccessRecord>,
+        _manager_name: String,
+        _realm: Pubkey,
+        _user: Pubkey,
+        role: Role,
+        _governance_bump: u8,
+    ) -> Result<()> {
+        let access_record = &mut ctx.accounts.access_record;
+
+        access_record.role = role;
+
+        Ok(())
+    }
     pub fn spl_gov_create_expense_package(
         ctx: Context<SPLGovCreateExpensePackage>,
         _manager_name: String,

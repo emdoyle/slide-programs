@@ -25,6 +25,31 @@ pub struct SPLGovInitializeExpenseManager<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(manager_name: String, realm: Pubkey, user: Pubkey, role: Role, governance_bump: u8)]
+pub struct SPLGovCreateAccessRecord<'info> {
+    #[account(
+        init,
+        seeds = [b"access_record", expense_manager.key().as_ref(), user.as_ref()],
+        bump,
+        payer = payer,
+        space = AccessRecord::MAX_SIZE + 8
+    )]
+    pub access_record: Account<'info, AccessRecord>,
+    #[account(seeds = [b"expense_manager", manager_name.as_bytes()], bump = expense_manager.bump)]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(
+        signer,
+        seeds = [b"account-governance", realm.as_ref(), expense_manager.key().as_ref()],
+        bump = governance_bump,
+        seeds::program = SPL_GOV_PROGRAM_ID
+    )]
+    pub governance_authority: Account<'info, Governance>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 #[instruction(manager_name: String, realm: Pubkey, nonce: u32, token_owner_bump: u8)]
 pub struct SPLGovCreateExpensePackage<'info> {
     #[account(init, seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()], bump, payer = owner, space = ExpensePackage::MAX_SIZE + 8)]
