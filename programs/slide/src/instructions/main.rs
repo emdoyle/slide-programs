@@ -1,4 +1,5 @@
 use crate::state::*;
+use crate::utils::*;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -20,11 +21,16 @@ pub struct CreateExpenseManager<'info> {
     pub system_program: Program<'info, System>,
 }
 
-// #[derive(Accounts)]
-// #[instruction(expense_manager_address: Pubkey, nonce: u8, bump: u8)]
-// pub struct WithdrawFromExpensePackage<'info> {
-//     #[account(mut, seeds = [b"expense_package", expense_manager_address.as_ref(), owner.key().as_ref(), &[nonce]], bump = bump, has_one = owner)]
-//     pub expense_package: Account<'info, ExpensePackage>,
-//     #[account(mut)]
-//     pub owner: Signer<'info>,
-// }
+#[derive(Accounts)]
+#[instruction(expense_manager_address: Pubkey, nonce: u32)]
+pub struct WithdrawFromExpensePackage<'info> {
+    #[account(
+        mut,
+        seeds = [b"expense_package", expense_manager_address.as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
+        bump = expense_package.bump,
+        constraint = expense_package.state == ExpensePackageState::Approved @ SlideError::PackageNotApproved
+    )]
+    pub expense_package: Account<'info, ExpensePackage>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
+}

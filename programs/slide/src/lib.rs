@@ -5,7 +5,6 @@ pub mod utils;
 use anchor_lang::prelude::*;
 use instructions::*;
 use state::*;
-use utils::*;
 
 // devnet
 // declare_id!("AgS7BpciUWV7bC7nL8KzSaNof4mvcycTUY9QQbPQ65Pt");
@@ -155,29 +154,23 @@ pub mod slide {
 
         Ok(())
     }
-    // pub fn withdraw_from_expense_package(
-    //     ctx: Context<WithdrawFromExpensePackage>,
-    //     _expense_manager_address: Pubkey,
-    //     _nonce: u8,
-    //     _bump: u8,
-    // ) -> Result<()> {
-    //     let expense_package = &mut ctx.accounts.expense_package;
-    //     require!(
-    //         expense_package.token_authority == None,
-    //         SlideError::TokensNotImplemented
-    //     );
-    //     require!(
-    //         expense_package.state == ExpensePackageState::Approved,
-    //         SlideError::PackageNotApproved
-    //     );
-    //     let owner = &mut ctx.accounts.owner;
-    //     let expense_package_info = expense_package.to_account_info();
-    //     let mut expense_package_balance = expense_package_info.try_borrow_mut_lamports()?;
-    //     let owner_info = owner.to_account_info();
-    //     let mut owner_balance = owner_info.try_borrow_mut_lamports()?;
-    //     let reimbursement_amount = expense_package.quantity;
-    //     **expense_package_balance -= reimbursement_amount;
-    //     **owner_balance += reimbursement_amount;
-    //     Ok(())
-    // }
+    pub fn withdraw_from_expense_package(
+        ctx: Context<WithdrawFromExpensePackage>,
+        _expense_manager_address: Pubkey,
+        _nonce: u32,
+    ) -> Result<()> {
+        let expense_package = &mut ctx.accounts.expense_package;
+        let owner = &mut ctx.accounts.owner;
+
+        let expense_package_info = expense_package.to_account_info();
+        let mut expense_package_balance = expense_package_info.try_borrow_mut_lamports()?;
+        let owner_info = owner.to_account_info();
+        let mut owner_balance = owner_info.try_borrow_mut_lamports()?;
+        let reimbursement_amount = expense_package.quantity;
+
+        **expense_package_balance -= reimbursement_amount;
+        **owner_balance += reimbursement_amount;
+
+        Ok(())
+    }
 }

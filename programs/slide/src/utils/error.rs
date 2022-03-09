@@ -18,8 +18,6 @@ pub enum SlideError {
     PackageMissingInfo,
     #[msg("ExpensePackage has not been manually approved")]
     PackageNotApproved,
-    #[msg("Token operations are not implemented yet!")]
-    TokensNotImplemented,
     #[msg("Insufficient funds exist in the manager to approve this expense")]
     ManagerInsufficientFunds,
     DataTooLarge,
