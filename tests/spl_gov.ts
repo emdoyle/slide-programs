@@ -6,10 +6,14 @@ import {
   withCreateRealm,
   withCreateTokenOwnerRecord,
   withDepositGoverningTokens,
+  withCreateGovernance,
+  GovernanceConfig,
+  VoteThresholdPercentage,
 } from "@solana/spl-governance";
 import {
   getExpensePackageAddressAndBump,
   getFundedAccount,
+  getGovernanceAddressAndBump,
   getTokenOwnerRecordAddressAndBump,
   signers,
   SPL_GOV_PROGRAM_ID,
@@ -58,7 +62,7 @@ async function setupSPLGov(
     user.publicKey,
     undefined,
     new MintMaxVoteWeightSource({ value: toBN(50_000) }),
-    toBN(100_000)
+    toBN(1)
   );
   const tokenOwnerRecord = await withCreateTokenOwnerRecord(
     instructions,
@@ -90,6 +94,45 @@ async function setupSPLGov(
     userTokenAccount,
     tokenOwnerRecord,
   };
+}
+
+async function createExpenseGovernance(
+  program: Program<Slide>,
+  user: Keypair,
+  realm: PublicKey,
+  tokenOwnerRecord: PublicKey,
+  expenseManager: PublicKey
+) {
+  let instructions = [];
+  const governance = await withCreateGovernance(
+    instructions,
+    SPL_GOV_PROGRAM_ID,
+    2,
+    realm,
+    expenseManager,
+    new GovernanceConfig({
+      // TODO: don't really know what any of these values do
+      voteThresholdPercentage: new VoteThresholdPercentage({ value: 1 }),
+      minCommunityTokensToCreateProposal: toBN(1_000),
+      minInstructionHoldUpTime: 100,
+      maxVotingTime: 100,
+      minCouncilTokensToCreateProposal: toBN(0),
+    }),
+    tokenOwnerRecord,
+    user.publicKey, // payer
+    user.publicKey // createAuthority
+  );
+
+  // TODO: dirty hack until payer is marked writable correctly by SDK
+  instructions[0].keys.forEach((keyObj) => {
+    if (keyObj.pubkey.equals(user.publicKey)) {
+      keyObj.isWritable = true;
+    }
+  });
+  const txn = new Transaction();
+  txn.add(...instructions);
+  await program.provider.send(txn, signers(program, [user]));
+  return { governance };
 }
 
 type SPLGovSharedData = {
@@ -137,20 +180,33 @@ describe("slide SPL Governance integration tests", () => {
       user,
       managerName
     );
-    const [, bump] = getTokenOwnerRecordAddressAndBump(
+    const [, tokenBump] = getTokenOwnerRecordAddressAndBump(
       realm,
       membershipTokenMint,
       user.publicKey
+    );
+    const { governance } = await createExpenseGovernance(
+      program,
+      user,
+      realm,
+      tokenOwnerRecord,
+      expenseManagerPDA
+    );
+    const [, governanceBump] = getGovernanceAddressAndBump(
+      realm,
+      expenseManagerPDA
     );
     await program.methods
       .splGovInitializeExpenseManager(
         managerName,
         realm,
-        user.publicKey, // TODO: should be gov authority
-        bump
+        governance,
+        tokenBump,
+        governanceBump
       )
       .accounts({
         expenseManager: expenseManagerPDA,
+        governanceAuthority: governance,
         tokenOwnerRecord,
         member: user.publicKey,
       })
@@ -161,10 +217,10 @@ describe("slide SPL Governance integration tests", () => {
     );
 
     sharedData.expenseManager = expenseManagerPDA;
-    sharedData.tokenBump = bump;
+    sharedData.tokenBump = tokenBump;
 
     assert(expenseManager.realm.equals(realm));
-    assert(expenseManager.governanceAuthority.equals(user.publicKey));
+    assert(expenseManager.governanceAuthority.equals(governance));
   });
   it("creates an expense package", async () => {
     const { user, realm, tokenOwnerRecord, tokenBump, expenseManager } =
@@ -239,4 +295,32 @@ describe("slide SPL Governance integration tests", () => {
       packageQuantity.toString()
     );
   });
+  it("submits an expense package", async () => {
+    const {
+      user,
+      realm,
+      tokenOwnerRecord,
+      tokenBump,
+      expenseManager,
+      expensePackage,
+      packageNonce,
+    } = sharedData;
+    await program.methods
+      .splGovSubmitExpensePackage(managerName, realm, packageNonce, tokenBump)
+      .accounts({
+        expensePackage,
+        expenseManager,
+        tokenOwnerRecord,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
+
+    expect(expensePackageData.state).to.eql({ pending: {} });
+  });
+  it("approves an expense package", async () => {});
 });

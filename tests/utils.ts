@@ -172,3 +172,17 @@ export function getTokenOwnerRecordAddressAndBump(
     SPL_GOV_PROGRAM_ID
   );
 }
+
+export function getGovernanceAddressAndBump(
+  realm: PublicKey,
+  governedAccount: PublicKey
+) {
+  return anchor.utils.publicKey.findProgramAddressSync(
+    [
+      Buffer.from("account-governance"),
+      realm.toBuffer(),
+      governedAccount.toBuffer(),
+    ],
+    SPL_GOV_PROGRAM_ID
+  );
+}

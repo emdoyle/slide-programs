@@ -20,6 +20,13 @@ pub enum Role {
     Reviewer,
 }
 
+impl Role {
+    pub fn can_approve_and_deny(&self) -> bool {
+        // currently all Roles can approve and deny
+        true
+    }
+}
+
 impl Default for Role {
     fn default() -> Self {
         Self::Reviewer

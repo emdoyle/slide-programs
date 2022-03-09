@@ -48,6 +48,7 @@ pub mod slide {
         realm: Pubkey,
         governance_authority: Pubkey,
         _token_owner_bump: u8,
+        _governance_bump: u8,
     ) -> Result<()> {
         let expense_manager = &mut ctx.accounts.expense_manager;
         expense_manager.realm = Some(realm);
@@ -85,115 +86,61 @@ pub mod slide {
     ) -> Result<()> {
         let expense_package = &mut ctx.accounts.expense_package;
 
-        require!(
-            expense_package.state == ExpensePackageState::Created,
-            SlideError::PackageFrozen
-        );
-
         expense_package.name = package_name;
         expense_package.description = description;
         expense_package.quantity = quantity;
 
         Ok(())
     }
-    // pub fn create_expense_package(
-    //     ctx: Context<CreateExpensePackage>,
-    //     _nonce: u8,
-    //     _manager_name: String,
-    //     _manager_bump: u8,
-    //     _package_bump: u8,
-    // ) -> Result<()> {
-    //     // TODO: how to authorize a user to create an expense package? --> mint authority on Manager
-    //     let expense_package = &mut ctx.accounts.expense_package;
-    //     require!(
-    //         AsRef::<ExpensePackage>::as_ref(expense_package) == &ExpensePackage::default(),
-    //         SlideError::PackageAlreadyExists
-    //     );
-    //     let owner = &ctx.accounts.owner;
-    //     let expense_manager = &ctx.accounts.expense_manager;
-    //     expense_package.owner = owner.key();
-    //     expense_package.expense_manager = expense_manager.key();
-    //     Ok(())
-    // }
-    // pub fn update_expense_package(
-    //     ctx: Context<UpdateExpensePackage>,
-    //     name: String,
-    //     description: String,
-    //     quantity: u64,
-    //     token_authority: Option<Pubkey>,
-    //     expense_manager_address: Pubkey,
-    //     _nonce: u8,
-    //     _bump: u8,
-    // ) -> Result<()> {
-    //     let expense_package = &mut ctx.accounts.expense_package;
-    //     let owner = &ctx.accounts.owner;
-    //     // TODO: not sure if this check is necessary
-    //     require!(
-    //         expense_package.owner == owner.key()
-    //             && expense_package.expense_manager == expense_manager_address,
-    //         SlideError::PackageOwnershipMismatch
-    //     );
-    //     expense_package.name = name;
-    //     expense_package.description = description;
-    //     expense_package.quantity = quantity;
-    //     expense_package.token_authority = token_authority;
-    //     Ok(())
-    // }
-    // pub fn submit_expense_package(
-    //     ctx: Context<SubmitExpensePackage>,
-    //     _expense_manager_address: Pubkey,
-    //     _nonce: u8,
-    //     _bump: u8,
-    // ) -> Result<()> {
-    //     let expense_package = &mut ctx.accounts.expense_package;
-    //     require!(
-    //         expense_package.state == ExpensePackageState::Created,
-    //         SlideError::PackageFrozen
-    //     );
-    //     // TODO: consider blocking if certain other fields (name, quantity) are still default
-    //     expense_package.state = ExpensePackageState::Pending;
-    //     Ok(())
-    // }
-    // pub fn approve_expense_package(
-    //     ctx: Context<ApproveExpensePackage>,
-    //     _owner_pubkey: Pubkey,
-    //     _nonce: u8,
-    //     _manager_name: String,
-    //     _manager_bump: u8,
-    //     _package_bump: u8,
-    // ) -> Result<()> {
-    //     let expense_package = &mut ctx.accounts.expense_package;
-    //     let expense_manager = &mut ctx.accounts.expense_manager;
-    //     require!(
-    //         expense_package.expense_manager == expense_manager.key(),
-    //         SlideError::PackageOwnershipMismatch
-    //     );
-    //     expense_package.state = ExpensePackageState::Approved;
-    //     let package_info = expense_package.to_account_info();
-    //     let mut package_balance = package_info.try_borrow_mut_lamports()?;
-    //     let manager_info = expense_manager.to_account_info();
-    //     let mut manager_balance = manager_info.try_borrow_mut_lamports()?;
-    //     **package_balance += expense_package.quantity;
-    //     **manager_balance -= expense_package.quantity;
-    //     Ok(())
-    // }
-    // pub fn deny_expense_package(
-    //     ctx: Context<DenyExpensePackage>,
-    //     _owner_pubkey: Pubkey,
-    //     _nonce: u8,
-    //     _manager_name: String,
-    //     _manager_bump: u8,
-    //     _package_bump: u8,
-    // ) -> Result<()> {
-    //     let expense_package = &mut ctx.accounts.expense_package;
-    //     let expense_manager = &ctx.accounts.expense_manager;
-    //     require!(
-    //         expense_package.expense_manager == expense_manager.key(),
-    //         SlideError::PackageOwnershipMismatch
-    //     );
-    //     expense_package.state = ExpensePackageState::Denied;
-    //     Ok(())
-    // }
+    pub fn spl_gov_submit_expense_package(
+        ctx: Context<SPLGovSubmitExpensePackage>,
+        _manager_name: String,
+        _realm: Pubkey,
+        _nonce: u32,
+        _token_owner_bump: u8,
+    ) -> Result<()> {
+        let expense_package = &mut ctx.accounts.expense_package;
+
+        // TODO: auto-approve logic
+        expense_package.state = ExpensePackageState::Pending;
+
+        Ok(())
+    }
+    pub fn spl_gov_approve_expense_package(
+        ctx: Context<SPLGovApproveExpensePackage>,
+        _manager_name: String,
+        _realm: Pubkey,
+        _owner_pubkey: Pubkey,
+        _nonce: u32,
+        _token_owner_bump: u8,
+    ) -> Result<()> {
+        let expense_package = &mut ctx.accounts.expense_package;
+        let expense_manager = &mut ctx.accounts.expense_manager;
+
+        expense_package.state = ExpensePackageState::Approved;
+        let package_info = expense_package.to_account_info();
+        let mut package_balance = package_info.try_borrow_mut_lamports()?;
+        let manager_info = expense_manager.to_account_info();
+        let mut manager_balance = manager_info.try_borrow_mut_lamports()?;
+        **package_balance += expense_package.quantity;
+        **manager_balance -= expense_package.quantity;
+
+        Ok(())
+    }
+    pub fn spl_gov_deny_expense_package(
+        ctx: Context<SPLGovApproveExpensePackage>,
+        _manager_name: String,
+        _realm: Pubkey,
+        _owner_pubkey: Pubkey,
+        _nonce: u32,
+        _token_owner_bump: u8,
+    ) -> Result<()> {
+        let expense_package = &mut ctx.accounts.expense_package;
+
+        expense_package.state = ExpensePackageState::Denied;
+
+        Ok(())
+    }
     // pub fn withdraw_from_expense_package(
     //     ctx: Context<WithdrawFromExpensePackage>,
     //     _expense_manager_address: Pubkey,
