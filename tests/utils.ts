@@ -4,8 +4,10 @@ import {
   AccountInfo,
   Keypair,
   PublicKey,
+  TransactionInstruction,
   LAMPORTS_PER_SOL,
   clusterApiUrl,
+  Transaction,
 } from "@solana/web3.js";
 import { Slide } from "../target/types/slide";
 
@@ -118,12 +120,48 @@ export async function getFundedAccount(
   return account;
 }
 
+export function setWritable(
+  instructions: TransactionInstruction[],
+  account: PublicKey
+) {
+  // TODO: dirty hack until payer is marked writable correctly by SDK
+  instructions.forEach((instruction) =>
+    instruction.keys.forEach((keyObj) => {
+      if (keyObj.pubkey.equals(account)) {
+        keyObj.isWritable = true;
+      }
+    })
+  );
+}
+
+export function addAccountAsSigner(
+  instruction: TransactionInstruction,
+  account: PublicKey,
+  writable: boolean = false
+) {
+  instruction.keys.push({
+    pubkey: account,
+    isWritable: writable,
+    isSigner: true,
+  });
+}
+
+export async function flushInstructions(
+  program: Program<Slide>,
+  instructions: TransactionInstruction[],
+  keypairs: Payer[]
+) {
+  const txn = new Transaction();
+  txn.add(...instructions);
+  return await program.provider.send(txn, signers(program, keypairs));
+}
+
 export function getUserDataAddressAndBump(
   user: PublicKey,
   programId: PublicKey
 ): [PublicKey, number] {
   return anchor.utils.publicKey.findProgramAddressSync(
-    [Buffer.from("user_data"), user.toBuffer()],
+    [Buffer.from("user-data"), user.toBuffer()],
     programId
   );
 }
@@ -133,7 +171,7 @@ export function getExpenseManagerAddressAndBump(
   programId: PublicKey
 ): [PublicKey, number] {
   return anchor.utils.publicKey.findProgramAddressSync(
-    [Buffer.from("expense_manager"), Buffer.from(name)],
+    [Buffer.from("expense-manager"), Buffer.from(name)],
     programId
   );
 }
@@ -148,7 +186,7 @@ export function getExpensePackageAddressAndBump(
   nonceBuf.writeInt32LE(nonce);
   return anchor.utils.publicKey.findProgramAddressSync(
     [
-      Buffer.from("expense_package"),
+      Buffer.from("expense-package"),
       expenseManagerPDA.toBuffer(),
       owner.toBuffer(),
       nonceBuf,
@@ -184,5 +222,23 @@ export function getGovernanceAddressAndBump(
       governedAccount.toBuffer(),
     ],
     SPL_GOV_PROGRAM_ID
+  );
+}
+
+export function getNativeTreasuryAddressAndBump(governance: PublicKey) {
+  return anchor.utils.publicKey.findProgramAddressSync(
+    [Buffer.from("native-treasury"), governance.toBuffer()],
+    SPL_GOV_PROGRAM_ID
+  );
+}
+
+export function getAccessRecordAddressAndBump(
+  programId: PublicKey,
+  expenseManager: PublicKey,
+  user: PublicKey
+) {
+  return anchor.utils.publicKey.findProgramAddressSync(
+    [Buffer.from("access-record"), expenseManager.toBuffer(), user.toBuffer()],
+    programId
   );
 }

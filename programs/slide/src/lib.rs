@@ -24,10 +24,12 @@ pub mod slide {
     ) -> Result<()> {
         let user_data = &mut ctx.accounts.user_data;
         let user = &ctx.accounts.user;
+
         user_data.username = username;
         user_data.real_name = real_name;
         user_data.user = user.key();
         user_data.bump = *ctx.bumps.get("user_data").unwrap();
+
         Ok(())
     }
     pub fn create_expense_manager(
@@ -36,9 +38,11 @@ pub mod slide {
         membership_token_mint: Pubkey,
     ) -> Result<()> {
         let expense_manager = &mut ctx.accounts.expense_manager;
+
         expense_manager.name = name;
         expense_manager.membership_token_mint = membership_token_mint;
         expense_manager.bump = *ctx.bumps.get("expense_manager").unwrap();
+
         Ok(())
     }
     pub fn spl_gov_initialize_expense_manager(
@@ -50,6 +54,7 @@ pub mod slide {
         _governance_bump: u8,
     ) -> Result<()> {
         let expense_manager = &mut ctx.accounts.expense_manager;
+
         expense_manager.realm = Some(realm);
         expense_manager.governance_authority = Some(governance_authority);
         Ok(())

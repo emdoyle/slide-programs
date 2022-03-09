@@ -16,8 +16,8 @@ impl AccessRecord {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
 pub enum Role {
-    Admin,
     Reviewer,
+    Admin,
 }
 
 impl Role {

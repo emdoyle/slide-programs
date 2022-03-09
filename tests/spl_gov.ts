@@ -1,6 +1,12 @@
 import { Slide } from "../target/types/slide";
 import { Program } from "@project-serum/anchor";
-import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
+import {
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+} from "@solana/web3.js";
 import { createAccount, createMint, mintTo } from "@solana/spl-token";
 import {
   withCreateRealm,
@@ -9,12 +15,28 @@ import {
   withCreateGovernance,
   GovernanceConfig,
   VoteThresholdPercentage,
+  withCreateNativeTreasury,
+  withCreateProposal,
+  VoteType,
+  withCastVote,
+  Vote,
+  withExecuteTransaction,
+  withInsertTransaction,
+  InstructionData,
+  AccountMetaData,
+  VoteChoice,
+  withSignOffProposal,
 } from "@solana/spl-governance";
 import {
+  addAccountAsSigner,
+  flushInstructions,
+  getAccessRecordAddressAndBump,
   getExpensePackageAddressAndBump,
   getFundedAccount,
   getGovernanceAddressAndBump,
+  getNativeTreasuryAddressAndBump,
   getTokenOwnerRecordAddressAndBump,
+  setWritable,
   signers,
   SPL_GOV_PROGRAM_ID,
   toBN,
@@ -113,8 +135,8 @@ async function createExpenseGovernance(
     new GovernanceConfig({
       // TODO: don't really know what any of these values do
       voteThresholdPercentage: new VoteThresholdPercentage({ value: 1 }),
-      minCommunityTokensToCreateProposal: toBN(1_000),
-      minInstructionHoldUpTime: 100,
+      minCommunityTokensToCreateProposal: toBN(1),
+      minInstructionHoldUpTime: 0,
       maxVotingTime: 100,
       minCouncilTokensToCreateProposal: toBN(0),
     }),
@@ -122,17 +144,22 @@ async function createExpenseGovernance(
     user.publicKey, // payer
     user.publicKey // createAuthority
   );
+  const nativeTreasury = await withCreateNativeTreasury(
+    instructions,
+    SPL_GOV_PROGRAM_ID,
+    governance,
+    user.publicKey
+  );
 
-  // TODO: dirty hack until payer is marked writable correctly by SDK
-  instructions[0].keys.forEach((keyObj) => {
-    if (keyObj.pubkey.equals(user.publicKey)) {
-      keyObj.isWritable = true;
-    }
-  });
   const txn = new Transaction();
   txn.add(...instructions);
   await program.provider.send(txn, signers(program, [user]));
-  return { governance };
+
+  await program.provider.connection.requestAirdrop(
+    nativeTreasury,
+    2 * LAMPORTS_PER_SOL
+  );
+  return { governance, nativeTreasury };
 }
 
 type SPLGovSharedData = {
@@ -141,7 +168,12 @@ type SPLGovSharedData = {
   membershipTokenMint?: PublicKey;
   tokenOwnerRecord?: PublicKey;
   tokenBump?: number;
+  governance?: PublicKey;
+  governanceBump?: number;
+  nativeTreasury?: PublicKey;
+  treasuryBump?: number;
   expenseManager?: PublicKey;
+  accessRecord?: PublicKey;
   expensePackage?: PublicKey;
   packageNonce?: number;
 };
@@ -155,6 +187,8 @@ describe("slide SPL Governance integration tests", () => {
   const packageDescription = "SPLGOVINTEGRATIONTESTPACKAGEDESCRIPTION";
   const packageQuantity = toBN(300_000);
   const realmName = "SPLGOVINTEGRATIONTESTREALM";
+  const proposalName = "SPLGOVINTEGRATIONTESTPROPOSAL";
+  const proposalDescriptionLink = "SPLGOVINTEGRATIONTESTPROPOSALDESCRIPTION";
   const sharedData: SPLGovSharedData = {};
 
   it("sets up realm and tokens", async () => {
@@ -185,7 +219,7 @@ describe("slide SPL Governance integration tests", () => {
       membershipTokenMint,
       user.publicKey
     );
-    const { governance } = await createExpenseGovernance(
+    const { governance, nativeTreasury } = await createExpenseGovernance(
       program,
       user,
       realm,
@@ -218,6 +252,9 @@ describe("slide SPL Governance integration tests", () => {
 
     sharedData.expenseManager = expenseManagerPDA;
     sharedData.tokenBump = tokenBump;
+    sharedData.governance = governance;
+    sharedData.governanceBump = governanceBump;
+    sharedData.nativeTreasury = nativeTreasury;
 
     assert(expenseManager.realm.equals(realm));
     assert(expenseManager.governanceAuthority.equals(governance));
@@ -324,10 +361,138 @@ describe("slide SPL Governance integration tests", () => {
   });
   it("grants reviewer access", async () => {
     // generate instructions for creating an access record
+    const {
+      user,
+      expenseManager,
+      realm,
+      tokenOwnerRecord,
+      membershipTokenMint,
+      governance,
+      governanceBump,
+      nativeTreasury,
+    } = sharedData;
+    const [, treasuryBump] = getNativeTreasuryAddressAndBump(governance);
+    const [accessRecord] = getAccessRecordAddressAndBump(
+      program.programId,
+      expenseManager,
+      user.publicKey
+    );
+    const instruction: TransactionInstruction = await program.methods
+      .splGovCreateAccessRecord(
+        managerName,
+        realm,
+        user.publicKey,
+        { reviewer: {} },
+        governanceBump,
+        treasuryBump
+      )
+      .accounts({
+        accessRecord,
+        expenseManager,
+        governanceAuthority: governance,
+        nativeTreasury,
+      })
+      .instruction();
+    const instructionData = new InstructionData({
+      programId: program.programId,
+      accounts: instruction.keys.map((key) => new AccountMetaData({ ...key })),
+      data: instruction.data,
+    });
     // create a proposal containing those instructions
-    // cast a vote for the proposal
-    // finalize the vote (make sure thresholds are set properly
+    let instructions = [];
+    const proposal = await withCreateProposal(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      2,
+      realm,
+      governance,
+      tokenOwnerRecord,
+      proposalName,
+      proposalDescriptionLink,
+      membershipTokenMint,
+      user.publicKey,
+      0,
+      new VoteType({ type: 0, choiceCount: 1 }),
+      ["Grant Access"],
+      true,
+      user.publicKey
+    );
+    const proposalTransaction = await withInsertTransaction(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      2,
+      governance,
+      proposal,
+      tokenOwnerRecord,
+      user.publicKey,
+      0,
+      0,
+      0,
+      [instructionData],
+      user.publicKey
+    );
+    // initiate voting on the proposal
+    await withSignOffProposal(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      2,
+      realm,
+      governance,
+      proposal,
+      user.publicKey,
+      undefined,
+      tokenOwnerRecord
+    );
+
+    await flushInstructions(program, instructions, [user]);
+    instructions = [];
+
+    // cast a vote for the proposal (finalizing is unnecessary due to vote tipping)
+    await withCastVote(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      2,
+      realm,
+      governance,
+      proposal,
+      tokenOwnerRecord,
+      tokenOwnerRecord,
+      user.publicKey,
+      membershipTokenMint,
+      new Vote({
+        voteType: 0,
+        approveChoices: [new VoteChoice({ rank: 0, weightPercentage: 100 })],
+        deny: false,
+      }),
+      user.publicKey
+    );
+
+    setWritable(instructions, user.publicKey);
+    await flushInstructions(program, instructions, [user]);
+    instructions = [];
+
     // execute the transaction
+    await withExecuteTransaction(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      2,
+      governance,
+      proposal,
+      proposalTransaction,
+      [instructionData]
+    );
+
+    // need to wait for unix timestamp on cluster to advance before executing
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    addAccountAsSigner(instructions[0], user.publicKey);
+    await flushInstructions(program, instructions, [user]);
+
     // verify that reviewer access is granted to the user (AccessRecord exists and is initialized)
+    const accessRecordData = await program.account.accessRecord.fetch(
+      accessRecord
+    );
+
+    expect(accessRecordData.role).to.eql({ reviewer: {} });
   });
 });
