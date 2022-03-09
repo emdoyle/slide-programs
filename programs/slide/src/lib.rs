@@ -61,6 +61,7 @@ pub mod slide {
         _user: Pubkey,
         role: Role,
         _governance_bump: u8,
+        _treasury_bump: u8,
     ) -> Result<()> {
         let access_record = &mut ctx.accounts.access_record;
 

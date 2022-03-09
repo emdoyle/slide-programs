@@ -322,5 +322,12 @@ describe("slide SPL Governance integration tests", () => {
 
     expect(expensePackageData.state).to.eql({ pending: {} });
   });
-  it("approves an expense package", async () => {});
+  it("grants reviewer access", async () => {
+    // generate instructions for creating an access record
+    // create a proposal containing those instructions
+    // cast a vote for the proposal
+    // finalize the vote (make sure thresholds are set properly
+    // execute the transaction
+    // verify that reviewer access is granted to the user (AccessRecord exists and is initialized)
+  });
 });

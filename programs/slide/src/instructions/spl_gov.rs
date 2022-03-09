@@ -25,13 +25,13 @@ pub struct SPLGovInitializeExpenseManager<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(manager_name: String, realm: Pubkey, user: Pubkey, role: Role, governance_bump: u8)]
+#[instruction(manager_name: String, realm: Pubkey, user: Pubkey, role: Role, governance_bump: u8, treasury_bump: u8)]
 pub struct SPLGovCreateAccessRecord<'info> {
     #[account(
         init,
         seeds = [b"access_record", expense_manager.key().as_ref(), user.as_ref()],
         bump,
-        payer = payer,
+        payer = native_treasury,
         space = AccessRecord::MAX_SIZE + 8
     )]
     pub access_record: Account<'info, AccessRecord>,
@@ -44,8 +44,13 @@ pub struct SPLGovCreateAccessRecord<'info> {
         seeds::program = SPL_GOV_PROGRAM_ID
     )]
     pub governance_authority: Account<'info, Governance>,
-    #[account(mut)]
-    pub payer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"native-treasury", governance_authority.key().as_ref()],
+        bump = treasury_bump,
+        seeds::program = SPL_GOV_PROGRAM_ID
+    )]
+    pub native_treasury: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
