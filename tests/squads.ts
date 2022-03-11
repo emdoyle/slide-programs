@@ -80,7 +80,7 @@ describe("slide Squads integration tests", () => {
     sharedData.squadMint = squadMint;
     sharedData.memberEquityRecord = memberEquityRecord;
   });
-  it.skip("creates and initializes an expense manager", async () => {
+  it("creates and initializes an expense manager", async () => {
     const { user, squad, squadMint, memberEquityRecord } = sharedData;
     const { expenseManagerPDA: expenseManager } = await createExpenseManager(
       program,

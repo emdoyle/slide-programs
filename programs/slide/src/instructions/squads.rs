@@ -6,7 +6,7 @@ use anchor_spl::token::TokenAccount;
 #[derive(Accounts)]
 #[instruction(name: String)]
 pub struct SquadsInitializeExpenseManager<'info> {
-    #[account(mut, seeds = [b"expense_manager", name.as_bytes()], bump = expense_manager.bump)]
+    #[account(mut, seeds = [b"expense-manager", name.as_bytes()], bump = expense_manager.bump)]
     pub expense_manager: Account<'info, ExpenseManager>,
     #[account(
         seeds = [member.key().as_ref(), squad.key().as_ref(), b"!memberequity"],

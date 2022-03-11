@@ -5,9 +5,11 @@
 //  - Squad
 //    probably just check mint address matches token account
 use anchor_lang::prelude::*;
-use borsh::BorshDeserialize;
-use solana_program::clock::UnixTimestamp;
+use solana_program::program_pack::Pack;
+use squads_program::state::proposal::Proposal as RawProposal;
+use squads_program::state::squad::{Member, Squad as RawSquad};
 use std::collections::BTreeMap;
+use std::ops::Deref;
 
 // devnet
 // pub const SQUADS_PROGRAM_ID: Pubkey =
@@ -17,65 +19,71 @@ use std::collections::BTreeMap;
 pub const SQUADS_PROGRAM_ID: Pubkey =
     solana_program::pubkey!("SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT");
 
-// TODO: these structs are copy-pasted from Squads rather than imported
-//   because the squads_program crate doesn't derive Clone
-//   which is required for anchor's Account
+pub struct Squad(RawSquad);
 
-// TODO: deserializing account data using Borsh will FAIL because the
-//   data was serialized using Pack
+impl Deref for Squad {
+    type Target = RawSquad;
 
-#[derive(Clone, BorshDeserialize)]
-pub struct Member {
-    pub equity_token_account: Pubkey, // contributions_account: [u8; 32], // need to expand for each mint
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
-#[derive(Clone, BorshDeserialize)]
-pub struct Squad {
-    pub is_initialized: bool,
-
-    /// whether or not the owner can still make changes (draft mode)
-    pub open: bool,
-    pub emergency_lock: bool,
-
-    /// typical settings
-    pub allocation_type: u8,
-    pub vote_support: u8,
-    pub vote_quorum: u8,
-    pub core_threshold: u8,
-    pub squad_name: String,
-    pub description: String,
-    pub token: String,
-
-    // future settings placeholders
-    pub future_setting_1: u8,
-    pub future_setting_2: u8,
-    pub future_setting_3: u8,
-    pub future_setting_4: u8,
-    pub future_setting_5: u8,
-
-    /// misc address for squad specific settings
-    // admin address for draft mode (open=true) only
-    pub admin: Pubkey,
-    pub sol_account: Pubkey,
-    pub mint_address: Pubkey,
-
-    pub future_address1: Pubkey,
-    pub future_address2: Pubkey,
-    pub future_address3: Pubkey,
-    pub future_address4: Pubkey,
-    pub future_address5: Pubkey,
-
-    pub proposal_nonce: u32,
-    pub created_on: i64,
-    /// the squad member list
-    pub members: BTreeMap<Pubkey, Member>,
-
-    pub random_id: String,
-
-    pub child_index: u32,
-    pub member_lock_index: u32,
-    // reserved for future updates
-    pub reserved: [u64; 32],
+impl Clone for Squad {
+    fn clone(&self) -> Self {
+        let cloned_members: BTreeMap<Pubkey, Member> = self
+            .0
+            .members
+            .iter()
+            .map(|(pubkey, member)| {
+                (
+                    pubkey.clone(),
+                    Member {
+                        equity_token_account: member.equity_token_account.clone(),
+                    },
+                )
+            })
+            .collect();
+        Self(RawSquad {
+            is_initialized: self.0.is_initialized,
+            /// whether or not the owner can still make changes (draft mode)
+            open: self.0.open,
+            emergency_lock: self.0.emergency_lock,
+            /// typical settings
+            allocation_type: self.0.allocation_type,
+            vote_support: self.0.vote_support,
+            vote_quorum: self.0.vote_quorum,
+            core_threshold: self.0.core_threshold,
+            squad_name: self.0.squad_name.clone(),
+            description: self.0.description.clone(),
+            token: self.0.token.clone(),
+            // future settings placeholders
+            future_setting_1: self.0.future_setting_1,
+            future_setting_2: self.0.future_setting_2,
+            future_setting_3: self.0.future_setting_3,
+            future_setting_4: self.0.future_setting_4,
+            future_setting_5: self.0.future_setting_5,
+            /// misc address for squad specific settings
+            // admin address for draft mode (open=true) only
+            admin: self.0.admin,
+            sol_account: self.0.sol_account,
+            mint_address: self.0.mint_address,
+            future_address1: self.0.future_address1,
+            future_address2: self.0.future_address2,
+            future_address3: self.0.future_address3,
+            future_address4: self.0.future_address4,
+            future_address5: self.0.future_address5,
+            proposal_nonce: self.0.proposal_nonce,
+            created_on: self.0.created_on,
+            /// the squad member list
+            members: cloned_members,
+            random_id: self.0.random_id.clone(),
+            child_index: self.0.child_index,
+            member_lock_index: self.0.member_lock_index,
+            // reserved for future updates
+            reserved: self.0.reserved,
+        })
+    }
 }
 
 impl anchor_lang::Owner for Squad {
@@ -86,70 +94,83 @@ impl anchor_lang::Owner for Squad {
 
 impl anchor_lang::AccountDeserialize for Squad {
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> Result<Self> {
-        Ok(BorshDeserialize::deserialize(buf).unwrap())
+        let raw_squad_data = RawSquad::unpack_unchecked(&buf)?;
+        Ok(Self(raw_squad_data))
     }
 }
 
 impl anchor_lang::AccountSerialize for Squad {}
 
-#[derive(Clone, BorshDeserialize)]
-pub struct SquadsProposal {
-    pub is_initialized: bool,
-    // 0 - text proposal
-    // 1 - change support
-    // 2 - change quorum
-    // 3 - emergency quorum
-    // 4 - withdraw SOL
-    // 5 - withdraw token
-    // 6 - add member
-    // 7 - remove member
-    // 8 - mint more tokens to a member
-    pub proposal_type: u8,
-    pub execution_amount: u64,
-    pub execution_amount_out: u64,
-    pub execution_source: Pubkey,
-    pub execution_destination: Pubkey,
-    pub creator: Pubkey,
-    pub squad_address: Pubkey,
-    pub title: String,
-    pub description: String,
-    pub link: String,
-    // number of vote options
-    pub votes_num: u8,
-    pub has_voted_num: u8,
-    pub has_voted: Vec<Pubkey>,
-    pub votes: Vec<u64>,
-    // labels of the vote options
-    pub votes_labels: Vec<String>,
-    pub start_timestamp: UnixTimestamp,
-    pub close_timestamp: UnixTimestamp,
-    pub created_timestamp: UnixTimestamp,
-    pub supply_at_execute: u64,
-    pub members_at_execute: u8,
-    pub threshold_at_execute: u8,
-    pub executed: bool,
-    pub execute_ready: bool,
-    pub execution_date: UnixTimestamp,
+pub struct Proposal(RawProposal);
 
-    pub instruction_index: u8,
-    pub multiple_choice: bool,
+impl Deref for Proposal {
+    type Target = RawProposal;
 
-    pub executed_by: Pubkey,
-    pub proposal_index: u32,
-    // reserved for future updates
-    pub reserved: [u64; 16],
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
-impl anchor_lang::Owner for SquadsProposal {
+impl Clone for Proposal {
+    fn clone(&self) -> Self {
+        Self(RawProposal {
+            is_initialized: self.0.is_initialized,
+            // 0 - text proposal
+            // 1 - change support
+            // 2 - change quorum
+            // 3 - emergency quorum
+            // 4 - withdraw SOL
+            // 5 - withdraw token
+            // 6 - add member
+            // 7 - remove member
+            // 8 - mint more tokens to a member
+            proposal_type: self.0.proposal_type,
+            execution_amount: self.0.execution_amount,
+            execution_amount_out: self.0.execution_amount_out,
+            execution_source: self.0.execution_source,
+            execution_destination: self.0.execution_destination,
+            creator: self.0.creator,
+            squad_address: self.0.squad_address,
+            title: self.0.title.clone(),
+            description: self.0.description.clone(),
+            link: self.0.link.clone(),
+            // number of vote options
+            votes_num: self.0.votes_num,
+            has_voted_num: self.0.has_voted_num,
+            has_voted: self.0.has_voted.clone(),
+            votes: self.0.votes.clone(),
+            // labels of the vote options
+            votes_labels: self.0.votes_labels.clone(),
+            start_timestamp: self.0.start_timestamp,
+            close_timestamp: self.0.close_timestamp,
+            created_timestamp: self.0.created_timestamp,
+            supply_at_execute: self.0.supply_at_execute,
+            members_at_execute: self.0.members_at_execute,
+            threshold_at_execute: self.0.threshold_at_execute,
+            executed: self.0.executed,
+            execute_ready: self.0.execute_ready,
+            execution_date: self.0.execution_date,
+            instruction_index: self.0.instruction_index,
+            multiple_choice: self.0.multiple_choice,
+            executed_by: self.0.executed_by,
+            proposal_index: self.0.proposal_index,
+            // reserved for future updates
+            reserved: self.0.reserved,
+        })
+    }
+}
+
+impl anchor_lang::Owner for Proposal {
     fn owner() -> Pubkey {
         SQUADS_PROGRAM_ID
     }
 }
 
-impl anchor_lang::AccountDeserialize for SquadsProposal {
+impl anchor_lang::AccountDeserialize for Proposal {
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> Result<Self> {
-        Ok(BorshDeserialize::deserialize(buf).unwrap())
+        let raw_proposal_data = RawProposal::unpack_unchecked(&buf)?;
+        Ok(Self(raw_proposal_data))
     }
 }
 
-impl anchor_lang::AccountSerialize for SquadsProposal {}
+impl anchor_lang::AccountSerialize for Proposal {}
