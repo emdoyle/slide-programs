@@ -1,16 +1,30 @@
-// use crate::state::*;
-// use anchor_lang::prelude::*;
-//
-// #[derive(Accounts)]
-// #[instruction(name: String, squad: Pubkey, manager_bump: u8, equity_bump: u8)]
-// pub struct SquadsInitializeExpenseManager<'info> {
-//     #[account(mut, seeds = [b"expense_manager", name.as_bytes()], bump = manager_bump)]
-//     pub expense_manager: Account<'info, ExpenseManager>,
-//     #[account(seeds = [squad.as_ref(), member.key().as_ref(), b"!memberequity"], bump = equity_bump)]
-//     pub member_equity: Account<'info, MemberEquity>,
-//     #[account(mut)]
-//     pub member: Signer<'info>,
-// }
+use crate::state::*;
+use crate::utils::*;
+use anchor_lang::prelude::*;
+use anchor_spl::token::TokenAccount;
+
+#[derive(Accounts)]
+#[instruction(name: String)]
+pub struct SquadsInitializeExpenseManager<'info> {
+    #[account(mut, seeds = [b"expense_manager", name.as_bytes()], bump = expense_manager.bump)]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(
+        seeds = [member.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID,
+        constraint = member_equity.mint == squad.mint_address @ SlideError::SquadsMintMismatch,
+        constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
+    )]
+    pub member_equity: Account<'info, TokenAccount>,
+    #[account(
+        seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID
+    )]
+    pub squad: Box<Account<'info, Squad>>,
+    #[account(mut)]
+    pub member: Signer<'info>,
+}
 //
 // #[derive(Accounts)]
 // #[instruction(nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]

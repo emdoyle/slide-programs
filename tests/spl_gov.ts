@@ -178,7 +178,7 @@ type SPLGovSharedData = {
   packageNonce?: number;
 };
 
-describe("slide SPL Governance integration tests", () => {
+describe.skip("slide SPL Governance integration tests", () => {
   anchor.setProvider(anchor.Provider.env());
 
   const program = anchor.workspace.Slide as Program<Slide>;

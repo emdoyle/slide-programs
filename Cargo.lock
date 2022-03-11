@@ -165,6 +165,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "anchor-spl"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bcdf03d76450451f6c587098fa0d9775dc7eabf9173c89bd1bb17dd72b49e748"
+dependencies = [
+ "anchor-lang",
+ "solana-program",
+ "spl-associated-token-account",
+ "spl-token",
+]
+
+[[package]]
 name = "anchor-syn"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1021,6 +1033,7 @@ name = "slide"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "anchor-spl",
  "solana-program",
  "spl-governance",
  "squads-program",

@@ -10,6 +10,8 @@ pub enum SlideError {
     IncorrectNonce,
     #[msg("Realm does not match ExpenseManager")]
     SPLGovRealmMismatch,
+    #[msg("Squad mint does not match TokenAccount mint")]
+    SquadsMintMismatch,
     #[msg("ExpensePackage is not owned by signer, or not related to provided expense manager")]
     PackageOwnershipMismatch,
     #[msg("ExpensePackage has already been submitted or is otherwise locked")]

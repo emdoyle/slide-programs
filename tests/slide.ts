@@ -6,7 +6,7 @@ import { getFundedAccount } from "./utils";
 import { createMint } from "@solana/spl-token";
 import { createExpenseManager, initializeUser } from "./program_rpc";
 
-describe("slide base tests", () => {
+describe.skip("slide base tests", () => {
   anchor.setProvider(anchor.Provider.env());
 
   const program = anchor.workspace.Slide as Program<Slide>;

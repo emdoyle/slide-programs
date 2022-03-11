@@ -11,8 +11,11 @@ wallet = "/Users/evanmdoyle/.config/solana/id.json"
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
+[test]
+startup_wait = 15000
+
 [test.validator]
-url = "https://api.devnet.solana.com"
+url = "m"
 
 # SPL Governance shared Program
 [[test.validator.clone]]
@@ -24,12 +27,14 @@ address = "BZYjZ2ZbtAawP9WPt5yXszcoMWTvNFFX4AMbnDojtSGL"
 
 # Squads shared Program
 [[test.validator.clone]]
-address = "SQDSm7ifFqwmgxY5aL59BtHcBGHEgbg5thh4Y9ytdn3"
+# devnet
+# address = "SQDSm7ifFqwmgxY5aL59BtHcBGHEgbg5thh4Y9ytdn3"
+# mainnet
+address = "SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT"
 
 # Squads shared Program Data Address
 [[test.validator.clone]]
-address = "4MCvGwea4ko8SGrKMxJoyFWdN8MD3vPNXLA2J1G6KyW6"
-
-# SPL Token Program
-[[test.validator.clone]]
-address = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+# devnet
+# address = "4MCvGwea4ko8SGrKMxJoyFWdN8MD3vPNXLA2J1G6KyW6"
+# mainnet
+address = "2SzQW4XUwVjqeovfFpPJEZDU3rxCEekgbzq2AfL2mxq6"

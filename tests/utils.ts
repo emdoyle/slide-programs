@@ -19,8 +19,14 @@ export const IS_MAINNET =
 export const SPL_GOV_PROGRAM_ID = new PublicKey(
   "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"
 );
+// devnet
+// export const SQUADS_PROGRAM_ID = new PublicKey(
+//   "SQDSm7ifFqwmgxY5aL59BtHcBGHEgbg5thh4Y9ytdn3"
+// );
+
+// mainnet
 export const SQUADS_PROGRAM_ID = new PublicKey(
-  "SQDSm7ifFqwmgxY5aL59BtHcBGHEgbg5thh4Y9ytdn3"
+  "SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT"
 );
 
 export type Payer = Keypair | Wallet;

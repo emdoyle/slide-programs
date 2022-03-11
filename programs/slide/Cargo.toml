@@ -17,6 +17,7 @@ default = []
 
 [dependencies]
 anchor-lang = "0.22.1"
+anchor-spl = "0.22.1"
 solana-program = "1.10.0"
 spl-governance = { version = "2.2.2", features = ["no-entrypoint"] }
 squads-program = { version = "2.0.1", features = ["no-entrypoint"] }

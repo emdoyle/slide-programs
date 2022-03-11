@@ -179,4 +179,15 @@ pub mod slide {
 
         Ok(())
     }
+    pub fn squads_initialize_expense_manager(
+        ctx: Context<SquadsInitializeExpenseManager>,
+        _name: String,
+    ) -> Result<()> {
+        let expense_manager = &mut ctx.accounts.expense_manager;
+        let squad = &ctx.accounts.squad;
+
+        expense_manager.squad = Some(squad.key());
+
+        Ok(())
+    }
 }
