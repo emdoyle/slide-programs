@@ -60,7 +60,7 @@ type SquadsSharedData = {
   packageNonce?: number;
 };
 
-describe("slide Squads integration tests", () => {
+describe.skip("slide Squads integration tests", () => {
   anchor.setProvider(anchor.Provider.env());
 
   const program = anchor.workspace.Slide as Program<Slide>;

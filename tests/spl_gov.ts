@@ -33,9 +33,6 @@ import {
   getAccessRecordAddressAndBump,
   getExpensePackageAddressAndBump,
   getFundedAccount,
-  getGovernanceAddressAndBump,
-  getNativeTreasuryAddressAndBump,
-  getTokenOwnerRecordAddressAndBump,
   setWritable,
   signers,
   SPL_GOV_PROGRAM_ID,
@@ -167,18 +164,15 @@ type SPLGovSharedData = {
   realm?: PublicKey;
   membershipTokenMint?: PublicKey;
   tokenOwnerRecord?: PublicKey;
-  tokenBump?: number;
   governance?: PublicKey;
-  governanceBump?: number;
   nativeTreasury?: PublicKey;
-  treasuryBump?: number;
   expenseManager?: PublicKey;
   accessRecord?: PublicKey;
   expensePackage?: PublicKey;
   packageNonce?: number;
 };
 
-describe.skip("slide SPL Governance integration tests", () => {
+describe("slide SPL Governance integration tests", () => {
   anchor.setProvider(anchor.Provider.env());
 
   const program = anchor.workspace.Slide as Program<Slide>;
@@ -214,11 +208,6 @@ describe.skip("slide SPL Governance integration tests", () => {
       user,
       managerName
     );
-    const [, tokenBump] = getTokenOwnerRecordAddressAndBump(
-      realm,
-      membershipTokenMint,
-      user.publicKey
-    );
     const { governance, nativeTreasury } = await createExpenseGovernance(
       program,
       user,
@@ -226,18 +215,8 @@ describe.skip("slide SPL Governance integration tests", () => {
       tokenOwnerRecord,
       expenseManagerPDA
     );
-    const [, governanceBump] = getGovernanceAddressAndBump(
-      realm,
-      expenseManagerPDA
-    );
     await program.methods
-      .splGovInitializeExpenseManager(
-        managerName,
-        realm,
-        governance,
-        tokenBump,
-        governanceBump
-      )
+      .splGovInitializeExpenseManager(managerName, realm, governance)
       .accounts({
         expenseManager: expenseManagerPDA,
         governanceAuthority: governance,
@@ -251,25 +230,22 @@ describe.skip("slide SPL Governance integration tests", () => {
     );
 
     sharedData.expenseManager = expenseManagerPDA;
-    sharedData.tokenBump = tokenBump;
     sharedData.governance = governance;
-    sharedData.governanceBump = governanceBump;
     sharedData.nativeTreasury = nativeTreasury;
 
     assert(expenseManager.realm.equals(realm));
     assert(expenseManager.governanceAuthority.equals(governance));
   });
   it("creates an expense package", async () => {
-    const { user, realm, tokenOwnerRecord, tokenBump, expenseManager } =
-      sharedData;
-    const [expensePackagePDA, package_bump] = getExpensePackageAddressAndBump(
+    const { user, realm, tokenOwnerRecord, expenseManager } = sharedData;
+    const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
       expenseManager,
       user.publicKey,
       0,
       program.programId
     );
     await program.methods
-      .splGovCreateExpensePackage(managerName, realm, 0, tokenBump)
+      .splGovCreateExpensePackage(managerName, realm, 0)
       .accounts({
         expensePackage: expensePackagePDA,
         expenseManager,
@@ -289,7 +265,7 @@ describe.skip("slide SPL Governance integration tests", () => {
     sharedData.expensePackage = expensePackagePDA;
     sharedData.packageNonce = 0;
 
-    expect(expensePackageData.bump).to.equal(package_bump);
+    expect(expensePackageData.bump).to.equal(packageBump);
     expect(expensePackageData.state).to.eql({ created: {} });
     expect(expenseManagerData.expensePackageNonce).to.equal(1);
   });
@@ -298,7 +274,6 @@ describe.skip("slide SPL Governance integration tests", () => {
       user,
       realm,
       tokenOwnerRecord,
-      tokenBump,
       expenseManager,
       expensePackage,
       packageNonce,
@@ -310,8 +285,7 @@ describe.skip("slide SPL Governance integration tests", () => {
         packageName,
         packageDescription,
         packageQuantity,
-        packageNonce,
-        tokenBump
+        packageNonce
       )
       .accounts({
         expensePackage,
@@ -337,13 +311,12 @@ describe.skip("slide SPL Governance integration tests", () => {
       user,
       realm,
       tokenOwnerRecord,
-      tokenBump,
       expenseManager,
       expensePackage,
       packageNonce,
     } = sharedData;
     await program.methods
-      .splGovSubmitExpensePackage(managerName, realm, packageNonce, tokenBump)
+      .splGovSubmitExpensePackage(managerName, realm, packageNonce)
       .accounts({
         expensePackage,
         expenseManager,
@@ -368,24 +341,17 @@ describe.skip("slide SPL Governance integration tests", () => {
       tokenOwnerRecord,
       membershipTokenMint,
       governance,
-      governanceBump,
       nativeTreasury,
     } = sharedData;
-    const [, treasuryBump] = getNativeTreasuryAddressAndBump(governance);
     const [accessRecord] = getAccessRecordAddressAndBump(
       program.programId,
       expenseManager,
       user.publicKey
     );
     const instruction: TransactionInstruction = await program.methods
-      .splGovCreateAccessRecord(
-        managerName,
-        realm,
-        user.publicKey,
-        { reviewer: {} },
-        governanceBump,
-        treasuryBump
-      )
+      .splGovCreateAccessRecord(managerName, realm, user.publicKey, {
+        reviewer: {},
+      })
       .accounts({
         accessRecord,
         expenseManager,

@@ -50,8 +50,6 @@ pub mod slide {
         _name: String,
         realm: Pubkey,
         governance_authority: Pubkey,
-        _token_owner_bump: u8,
-        _governance_bump: u8,
     ) -> Result<()> {
         let expense_manager = &mut ctx.accounts.expense_manager;
 
@@ -65,8 +63,6 @@ pub mod slide {
         _realm: Pubkey,
         _user: Pubkey,
         role: Role,
-        _governance_bump: u8,
-        _treasury_bump: u8,
     ) -> Result<()> {
         let access_record = &mut ctx.accounts.access_record;
 
@@ -79,7 +75,6 @@ pub mod slide {
         _manager_name: String,
         _realm: Pubkey,
         _nonce: u32, // assuming constraint has already verified nonce value
-        _token_owner_bump: u8,
     ) -> Result<()> {
         let expense_manager = &mut ctx.accounts.expense_manager;
         let expense_package = &mut ctx.accounts.expense_package;
@@ -101,7 +96,6 @@ pub mod slide {
         description: String,
         quantity: u64,
         _nonce: u32,
-        _token_owner_bump: u8,
     ) -> Result<()> {
         let expense_package = &mut ctx.accounts.expense_package;
 
@@ -116,7 +110,6 @@ pub mod slide {
         _manager_name: String,
         _realm: Pubkey,
         _nonce: u32,
-        _token_owner_bump: u8,
     ) -> Result<()> {
         let expense_package = &mut ctx.accounts.expense_package;
 
@@ -131,7 +124,6 @@ pub mod slide {
         _realm: Pubkey,
         _owner_pubkey: Pubkey,
         _nonce: u32,
-        _token_owner_bump: u8,
     ) -> Result<()> {
         let expense_package = &mut ctx.accounts.expense_package;
         let expense_manager = &mut ctx.accounts.expense_manager;
@@ -152,7 +144,6 @@ pub mod slide {
         _realm: Pubkey,
         _owner_pubkey: Pubkey,
         _nonce: u32,
-        _token_owner_bump: u8,
     ) -> Result<()> {
         let expense_package = &mut ctx.accounts.expense_package;
 
