@@ -1,18 +1,11 @@
 import { BN } from "@project-serum/anchor";
 import {
-  PublicKey,
-  TransactionInstruction,
-  SYSVAR_RENT_PUBKEY,
-} from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { SYSTEM_PROGRAM_ID } from "@solana/spl-governance";
-import {
   Layout as AbstractLayout,
+  OffsetLayout,
   Structure,
   uint8ArrayToBuffer,
 } from "@solana/buffer-layout";
 const Layout = require("@solana/buffer-layout");
-import { SQUADS_PROGRAM_ID } from "./utils";
 
 /*
  * NOTES:
@@ -22,10 +15,6 @@ import { SQUADS_PROGRAM_ID } from "./utils";
 class FixedLengthUTF8 extends AbstractLayout<string> {
   constructor(length: number, property?: string) {
     super(length, property);
-  }
-  /** @override */
-  getSpan(b: Uint8Array, offset: number = 0): number {
-    return this.span;
   }
   /** @override */
   decode(b: Uint8Array, offset: number = 0): string {
@@ -41,7 +30,11 @@ class FixedLengthUTF8 extends AbstractLayout<string> {
       throw new RangeError("text length exceeds intended span");
     }
     if (this.span + offset > b.length) {
-      throw new RangeError("encoding overruns Buffer");
+      throw new RangeError(
+        `encoding overruns Buffer (${
+          this.property ?? "(unnamed)"
+        }: FixedLengthUTF8)`
+      );
     }
 
     srcb.copy(uint8ArrayToBuffer(b), offset);
@@ -49,7 +42,31 @@ class FixedLengthUTF8 extends AbstractLayout<string> {
   }
 }
 
-Layout.fixedUtf8 = (length, property) => new FixedLengthUTF8(length, property);
+Layout.fixedUtf8 = (length, property?) => new FixedLengthUTF8(length, property);
+
+class U64 extends AbstractLayout<BN> {
+  constructor(property?: string) {
+    super(8, property);
+  }
+  /** @override */
+  decode(b: Uint8Array, offset: number = 0): BN {
+    const buffer = uint8ArrayToBuffer(b);
+    return new BN(buffer.slice(offset, offset + 8), "le");
+  }
+  /** @override */
+  encode(src: BN, b: Uint8Array, offset: number = 0): number {
+    if (this.span + offset > b.length) {
+      throw new RangeError(
+        `encoding overruns Buffer (${this.property ?? "(unnamed)"}: U64)`
+      );
+    }
+    const srcb = src.toBuffer("le", 8);
+    srcb.copy(uint8ArrayToBuffer(b), offset);
+    return 8;
+  }
+}
+
+Layout.u64 = (property?) => new U64(property);
 
 export enum SquadsInstruction {
   CreateSquad,
@@ -94,6 +111,16 @@ export class CreateSquadArgs {
     this.description = ensureLength(args.description, 36);
     this.token = ensureLength(args.token, 6);
     this.randomId = ensureLength(args.randomId, 10);
+  }
+}
+
+export class AddMembersToSquadArgs {
+  instruction: SquadsInstruction = SquadsInstruction.AddMembersToSquad;
+  membersNum: number; // 1 byte
+  allocationTable: BN[]; // u64[]
+  constructor(args: { allocationTable: BN[] }) {
+    this.membersNum = args.allocationTable.length;
+    this.allocationTable = args.allocationTable;
   }
 }
 
@@ -165,6 +192,19 @@ export const SquadsSchema: Map<SquadsInstruction, Structure<any>> = new Map([
       Layout.fixedUtf8(10, "randomId"),
     ]),
   ],
+  [
+    SquadsInstruction.AddMembersToSquad,
+    Layout.struct([
+      Layout.u8("instruction"),
+      Layout.u8("membersNum"),
+      Layout.u64(), // ignored
+      Layout.seq(
+        Layout.u64(),
+        new OffsetLayout(Layout.u8(), -9),
+        "allocationTable"
+      ),
+    ]),
+  ],
 ]);
 //   [
 //     CreateSquadArgs,
@@ -223,97 +263,3 @@ export const SquadsSchema: Map<SquadsInstruction, Structure<any>> = new Map([
 //     },
 //   ],
 // ]);
-
-function getRandomId() {
-  // generate a random number -> convert to alphanumeric (base 36) -> append 10 zeroes
-  // slice from past floating point ('0.') until 10 characters later
-  // ==> random 10 alphanumeric characters
-  // ref: https://stackoverflow.com/a/19964557
-  return (Math.random().toString(36) + "0000000000").slice(2, 12);
-}
-
-export async function getSquadAddressWithSeed(
-  admin: PublicKey,
-  randomId: string
-) {
-  return await PublicKey.findProgramAddress(
-    [admin.toBuffer(), Buffer.from(randomId), Buffer.from("!squad")],
-    SQUADS_PROGRAM_ID
-  );
-}
-
-export async function getMintOwnerAddressWithSeed(squad: PublicKey) {
-  return await PublicKey.findProgramAddress(
-    [squad.toBuffer(), Buffer.from("!squadmint")],
-    SQUADS_PROGRAM_ID
-  );
-}
-
-export const withCreateSquad = async (
-  instructions: TransactionInstruction[],
-  programId: PublicKey,
-  payer: PublicKey,
-  squadName: string,
-  description: string,
-  token: string,
-  voteSupport: number,
-  voteQuorum: number
-) => {
-  const randomId = getRandomId();
-  const args = new CreateSquadArgs({
-    voteSupport,
-    voteQuorum,
-    squadName,
-    description,
-    token,
-    randomId,
-  });
-  const data = Buffer.alloc(81);
-  SquadsSchema.get(SquadsInstruction.CreateSquad).encode(args, data);
-
-  const [squad] = await getSquadAddressWithSeed(payer, randomId);
-  const [mintOwner] = await getMintOwnerAddressWithSeed(squad);
-
-  const keys = [
-    {
-      pubkey: payer,
-      isWritable: true,
-      isSigner: true,
-    },
-    {
-      pubkey: squad,
-      isWritable: true,
-      isSigner: false,
-    },
-    {
-      pubkey: mintOwner,
-      isWritable: true,
-      isSigner: false,
-    },
-    {
-      pubkey: TOKEN_PROGRAM_ID,
-      isWritable: false,
-      isSigner: false,
-    },
-    {
-      pubkey: SYSTEM_PROGRAM_ID,
-      isWritable: false,
-      isSigner: false,
-    },
-    {
-      pubkey: SYSVAR_RENT_PUBKEY,
-      isWritable: false,
-      isSigner: false,
-    },
-  ];
-
-  instructions.push(
-    new TransactionInstruction({
-      keys,
-      programId,
-      data,
-    })
-  );
-
-  return { squad };
-};

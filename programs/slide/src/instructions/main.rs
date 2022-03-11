@@ -11,6 +11,7 @@ pub struct InitializeUser<'info> {
     pub system_program: Program<'info, System>,
 }
 
+// TODO: should this do a membership check?
 #[derive(Accounts)]
 #[instruction(name: String)]
 pub struct CreateExpenseManager<'info> {

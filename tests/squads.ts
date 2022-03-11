@@ -1,18 +1,10 @@
 import { Slide } from "../target/types/slide";
-import { Program } from "@project-serum/anchor";
+import { BN, Program } from "@project-serum/anchor";
+import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import {
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  Transaction,
-  TransactionInstruction,
-} from "@solana/web3.js";
-import {
-  addAccountAsSigner,
-  flushInstructions,
-  getAccessRecordAddressAndBump,
-  getExpensePackageAddressAndBump,
   getFundedAccount,
+  getMemberEquityAddressAndBump,
+  getSquadMintAddressAndBump,
   signers,
   SQUADS_PROGRAM_ID,
   toBN,
@@ -20,7 +12,7 @@ import {
 import * as anchor from "@project-serum/anchor";
 import { createExpenseManager } from "./program_rpc";
 import { assert, expect } from "chai";
-import { withCreateSquad } from "./squads_sdk";
+import { withAddMembersToSquad, withCreateSquad } from "./squads_sdk";
 
 async function setupSquad(
   program: Program<Slide>,
@@ -28,7 +20,7 @@ async function setupSquad(
   name?: string
 ) {
   let instructions = [];
-  const { squad } = await withCreateSquad(
+  const { squad, mintOwner } = await withCreateSquad(
     instructions,
     SQUADS_PROGRAM_ID,
     user.publicKey,
@@ -38,29 +30,33 @@ async function setupSquad(
     90,
     40
   );
+  await withAddMembersToSquad(
+    instructions,
+    SQUADS_PROGRAM_ID,
+    user.publicKey,
+    squad,
+    [[user.publicKey, new BN(100_000)]]
+  );
 
   const txn = new Transaction();
   txn.add(...instructions);
   await program.provider.send(txn, signers(program, [user]));
 
-  return { squad };
+  return { squad, mintOwner };
 }
 
 type SquadsSharedData = {
   user?: Keypair;
   squad?: PublicKey;
-  squadBump?: number;
   squadMint?: PublicKey;
-  mintBump?: number;
   memberEquityRecord?: PublicKey;
-  equityBump?: number;
   expenseManager?: PublicKey;
   accessRecord?: PublicKey;
   expensePackage?: PublicKey;
   packageNonce?: number;
 };
 
-describe.skip("slide Squads integration tests", () => {
+describe("slide Squads integration tests", () => {
   anchor.setProvider(anchor.Provider.env());
 
   const program = anchor.workspace.Slide as Program<Slide>;
@@ -73,10 +69,42 @@ describe.skip("slide Squads integration tests", () => {
 
   it("sets up squad", async () => {
     const user = await getFundedAccount(program);
-    await setupSquad(program, user, squadName);
+    const { squad } = await setupSquad(program, user, squadName);
+    const [squadMint] = getSquadMintAddressAndBump(squad);
+    const [memberEquityRecord] = getMemberEquityAddressAndBump(
+      user.publicKey,
+      squad
+    );
     sharedData.user = user;
+    sharedData.squad = squad;
+    sharedData.squadMint = squadMint;
+    sharedData.memberEquityRecord = memberEquityRecord;
   });
-  // it("creates and initializes an expense manager", async () => {
-  //   const { user } = sharedData;
-  // });
+  it.skip("creates and initializes an expense manager", async () => {
+    const { user, squad, squadMint, memberEquityRecord } = sharedData;
+    const { expenseManagerPDA: expenseManager } = await createExpenseManager(
+      program,
+      squadMint,
+      user,
+      managerName
+    );
+    await program.methods
+      .squadsInitializeExpenseManager(managerName)
+      .accounts({
+        expenseManager,
+        memberEquity: memberEquityRecord,
+        squad,
+        member: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expenseManagerData = await program.account.expenseManager.fetch(
+      expenseManager
+    );
+
+    assert(expenseManagerData.membershipTokenMint.equals(squadMint));
+    assert(expenseManagerData.squad.equals(squad));
+    expect(expenseManagerData.name).to.equal(managerName);
+  });
 });

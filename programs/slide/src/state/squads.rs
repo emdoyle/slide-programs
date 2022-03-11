@@ -9,12 +9,20 @@ use borsh::BorshDeserialize;
 use solana_program::clock::UnixTimestamp;
 use std::collections::BTreeMap;
 
+// devnet
+// pub const SQUADS_PROGRAM_ID: Pubkey =
+//     solana_program::pubkey!("SQDSm7ifFqwmgxY5aL59BtHcBGHEgbg5thh4Y9ytdn3");
+
+// mainnet
 pub const SQUADS_PROGRAM_ID: Pubkey =
-    solana_program::pubkey!("SQDSm7ifFqwmgxY5aL59BtHcBGHEgbg5thh4Y9ytdn3");
+    solana_program::pubkey!("SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT");
 
 // TODO: these structs are copy-pasted from Squads rather than imported
 //   because the squads_program crate doesn't derive Clone
 //   which is required for anchor's Account
+
+// TODO: deserializing account data using Borsh will FAIL because the
+//   data was serialized using Pack
 
 #[derive(Clone, BorshDeserialize)]
 pub struct Member {
