@@ -142,4 +142,41 @@ describe("slide Squads integration tests", () => {
     expect(expensePackageData.state).to.eql({ created: {} });
     expect(expenseManagerData.expensePackageNonce).to.equal(1);
   });
+  it("updates an expense package", async () => {
+    const {
+      user,
+      squad,
+      memberEquityRecord,
+      expenseManager,
+      expensePackage,
+      packageNonce,
+    } = sharedData;
+    await program.methods
+      .squadsUpdateExpensePackage(
+        packageNonce,
+        managerName,
+        packageName,
+        packageDescription,
+        packageQuantity
+      )
+      .accounts({
+        expensePackage,
+        expenseManager,
+        squad,
+        memberEquity: memberEquityRecord,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
+
+    expect(expensePackageData.name).to.equal(packageName);
+    expect(expensePackageData.description).to.equal(packageDescription);
+    expect(expensePackageData.quantity.toString()).to.equal(
+      packageQuantity.toString()
+    );
+  });
 });

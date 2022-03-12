@@ -198,4 +198,20 @@ pub mod slide {
 
         Ok(())
     }
+    pub fn squads_update_expense_package(
+        ctx: Context<SquadsUpdateExpensePackage>,
+        _nonce: u32,
+        _manager_name: String,
+        name: String,
+        description: String,
+        quantity: u64,
+    ) -> Result<()> {
+        let expense_package = &mut ctx.accounts.expense_package;
+
+        expense_package.name = name;
+        expense_package.description = description;
+        expense_package.quantity = quantity;
+
+        Ok(())
+    }
 }

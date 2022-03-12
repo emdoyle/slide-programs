@@ -63,14 +63,39 @@ pub struct SquadsCreateExpensePackage<'info> {
     pub owner: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
-//
-// #[derive(Accounts)]
-// #[instruction(name: String, description: String, quantity: u64, token_authority: Option<Pubkey>, expense_manager_address: Pubkey, nonce: u8, bump: u8)]
-// pub struct SquadsUpdateExpensePackage<'info> {
-//     #[account(mut, seeds = [b"expense_package", expense_manager_address.as_ref(), owner.key().as_ref(), &[nonce]], bump = bump, has_one = owner)]
-//     pub expense_package: Account<'info, ExpensePackage>,
-//     pub owner: Signer<'info>,
-// }
+
+#[derive(Accounts)]
+#[instruction(nonce: u32, manager_name: String, name: String, description: String, quantity: u64)]
+pub struct SquadsUpdateExpensePackage<'info> {
+    #[account(
+        mut,
+        seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
+        bump = expense_package.bump
+    )]
+    pub expense_package: Account<'info, ExpensePackage>,
+    #[account(
+        seeds = [b"expense-manager", manager_name.as_bytes()],
+        bump = expense_manager.bump,
+        constraint = Some(squad.key()) == expense_manager.squad @ SlideError::SquadMismatch
+    )]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(
+        seeds = [owner.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID,
+        constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
+        constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
+    )]
+    pub member_equity: Account<'info, TokenAccount>,
+    #[account(
+        seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID
+    )]
+    pub squad: Box<Account<'info, Squad>>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
+}
 //
 // #[derive(Accounts)]
 // #[instruction(expense_manager_address: Pubkey, nonce: u8, bump: u8)]
