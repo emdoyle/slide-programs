@@ -2,6 +2,7 @@ import { Slide } from "../target/types/slide";
 import { BN, Program } from "@project-serum/anchor";
 import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import {
+  getExpensePackageAddressAndBump,
   getFundedAccount,
   getMemberEquityAddressAndBump,
   getSquadMintAddressAndBump,
@@ -106,5 +107,39 @@ describe("slide Squads integration tests", () => {
     assert(expenseManagerData.membershipTokenMint.equals(squadMint));
     assert(expenseManagerData.squad.equals(squad));
     expect(expenseManagerData.name).to.equal(managerName);
+  });
+  it("creates an expense package", async () => {
+    const { user, squad, memberEquityRecord, expenseManager } = sharedData;
+    const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
+      expenseManager,
+      user.publicKey,
+      0,
+      program.programId
+    );
+    await program.methods
+      .squadsCreateExpensePackage(0, managerName)
+      .accounts({
+        expensePackage: expensePackagePDA,
+        expenseManager,
+        memberEquity: memberEquityRecord,
+        squad,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackagePDA
+    );
+    const expenseManagerData = await program.account.expenseManager.fetch(
+      expenseManager
+    );
+
+    sharedData.expensePackage = expensePackagePDA;
+    sharedData.packageNonce = 0;
+
+    expect(expensePackageData.bump).to.equal(packageBump);
+    expect(expensePackageData.state).to.eql({ created: {} });
+    expect(expenseManagerData.expensePackageNonce).to.equal(1);
   });
 });

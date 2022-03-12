@@ -12,7 +12,7 @@ pub struct SquadsInitializeExpenseManager<'info> {
         seeds = [member.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
         bump,
         seeds::program = SQUADS_PROGRAM_ID,
-        constraint = member_equity.mint == squad.mint_address @ SlideError::SquadsMintMismatch,
+        constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
         constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
     )]
     pub member_equity: Account<'info, TokenAccount>,
@@ -25,18 +25,44 @@ pub struct SquadsInitializeExpenseManager<'info> {
     #[account(mut)]
     pub member: Signer<'info>,
 }
-//
-// #[derive(Accounts)]
-// #[instruction(nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]
-// pub struct SquadsCreateExpensePackage<'info> {
-//     #[account(init, seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &[nonce]], bump = package_bump, payer = owner, space = ExpensePackage::MAX_SIZE + 8)]
-//     pub expense_package: Account<'info, ExpensePackage>,
-//     #[account(seeds = [b"expense_manager", manager_name.as_bytes()], bump = manager_bump)]
-//     pub expense_manager: Account<'info, ExpenseManager>,
-//     #[account(mut)]
-//     pub owner: Signer<'info>,
-//     pub system_program: Program<'info, System>,
-// }
+
+#[derive(Accounts)]
+#[instruction(nonce: u32, manager_name: String)]
+pub struct SquadsCreateExpensePackage<'info> {
+    #[account(
+        init,
+        seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
+        bump,
+        payer = owner,
+        space = ExpensePackage::MAX_SIZE + 8
+    )]
+    pub expense_package: Account<'info, ExpensePackage>,
+    #[account(
+        mut,
+        seeds = [b"expense_manager", manager_name.as_bytes()],
+        bump = expense_manager.bump,
+        constraint = nonce == expense_manager.expense_package_nonce @ SlideError::IncorrectNonce,
+        constraint = Some(squad.key()) == expense_manager.squad @ SlideError::SquadMismatch
+    )]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(
+        seeds = [owner.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID,
+        constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
+        constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
+    )]
+    pub member_equity: Account<'info, TokenAccount>,
+    #[account(
+        seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID
+    )]
+    pub squad: Box<Account<'info, Squad>>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
 //
 // #[derive(Accounts)]
 // #[instruction(name: String, description: String, quantity: u64, token_authority: Option<Pubkey>, expense_manager_address: Pubkey, nonce: u8, bump: u8)]

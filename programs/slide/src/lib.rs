@@ -181,4 +181,21 @@ pub mod slide {
 
         Ok(())
     }
+    pub fn squads_create_expense_package(
+        ctx: Context<SquadsCreateExpensePackage>,
+        _nonce: u32,
+        _manager_name: String,
+    ) -> Result<()> {
+        let expense_package = &mut ctx.accounts.expense_package;
+        let expense_manager = &mut ctx.accounts.expense_manager;
+
+        expense_package.bump = *ctx.bumps.get("expense_package").unwrap();
+
+        expense_manager.expense_package_nonce = expense_manager
+            .expense_package_nonce
+            .checked_add(1)
+            .unwrap();
+
+        Ok(())
+    }
 }
