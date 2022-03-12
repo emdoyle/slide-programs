@@ -179,4 +179,31 @@ describe("slide Squads integration tests", () => {
       packageQuantity.toString()
     );
   });
+  it("submits an expense package", async () => {
+    const {
+      user,
+      squad,
+      memberEquityRecord,
+      expenseManager,
+      expensePackage,
+      packageNonce,
+    } = sharedData;
+    await program.methods
+      .squadsSubmitExpensePackage(managerName, packageNonce)
+      .accounts({
+        expensePackage,
+        expenseManager,
+        squad,
+        member_equity: memberEquityRecord,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
+
+    expect(expensePackageData.state).to.eql({ pending: {} });
+  });
 });

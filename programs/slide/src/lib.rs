@@ -214,4 +214,15 @@ pub mod slide {
 
         Ok(())
     }
+    pub fn squads_submit_expense_package(
+        ctx: Context<SquadsSubmitExpensePackage>,
+        _manager_name: String,
+        _nonce: u32,
+    ) -> Result<()> {
+        let expense_package = &mut ctx.accounts.expense_package;
+
+        expense_package.state = ExpensePackageState::Pending;
+
+        Ok(())
+    }
 }

@@ -96,14 +96,41 @@ pub struct SquadsUpdateExpensePackage<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 }
-//
-// #[derive(Accounts)]
-// #[instruction(expense_manager_address: Pubkey, nonce: u8, bump: u8)]
-// pub struct SquadsSubmitExpensePackage<'info> {
-//     #[account(mut, seeds = [b"expense_package", expense_manager_address.as_ref(), owner.key().as_ref(), &[nonce]], bump = bump, has_one = owner)]
-//     pub expense_package: Account<'info, ExpensePackage>,
-//     pub owner: Signer<'info>,
-// }
+
+#[derive(Accounts)]
+#[instruction(manager_name: String, nonce: u32)]
+pub struct SquadsSubmitExpensePackage<'info> {
+    #[account(
+        mut,
+        seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
+        bump = expense_package.bump,
+        constraint = expense_package.state == ExpensePackageState::Created @ SlideError::PackageFrozen,
+        constraint = expense_package.quantity > 0 && !expense_package.name.is_empty() @ SlideError::PackageMissingInfo,
+    )]
+    pub expense_package: Account<'info, ExpensePackage>,
+    #[account(
+        seeds = [b"expense-manager", manager_name.as_bytes()],
+        bump = expense_manager.bump,
+        constraint = Some(squad.key()) == expense_manager.squad @ SlideError::SquadMismatch
+    )]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(
+        seeds = [owner.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID,
+        constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
+        constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
+    )]
+    pub member_equity: Account<'info, TokenAccount>,
+    #[account(
+        seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID
+    )]
+    pub squad: Box<Account<'info, Squad>>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
+}
 //
 // #[derive(Accounts)]
 // #[instruction(owner_pubkey: Pubkey, nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]
