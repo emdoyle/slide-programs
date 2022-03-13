@@ -104,6 +104,8 @@ describe("slide Squads integration tests", () => {
       expenseManager
     );
 
+    sharedData.expenseManager = expenseManager;
+
     assert(expenseManagerData.membershipTokenMint.equals(squadMint));
     assert(expenseManagerData.squad.equals(squad));
     expect(expenseManagerData.name).to.equal(managerName);
@@ -194,7 +196,7 @@ describe("slide Squads integration tests", () => {
         expensePackage,
         expenseManager,
         squad,
-        member_equity: memberEquityRecord,
+        memberEquity: memberEquityRecord,
         owner: user.publicKey,
       })
       .signers(signers(program, [user]))

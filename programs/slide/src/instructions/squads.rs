@@ -31,7 +31,7 @@ pub struct SquadsInitializeExpenseManager<'info> {
 pub struct SquadsCreateExpensePackage<'info> {
     #[account(
         init,
-        seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
+        seeds = [b"expense-package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
         bump,
         payer = owner,
         space = ExpensePackage::MAX_SIZE + 8
@@ -39,7 +39,7 @@ pub struct SquadsCreateExpensePackage<'info> {
     pub expense_package: Account<'info, ExpensePackage>,
     #[account(
         mut,
-        seeds = [b"expense_manager", manager_name.as_bytes()],
+        seeds = [b"expense-manager", manager_name.as_bytes()],
         bump = expense_manager.bump,
         constraint = nonce == expense_manager.expense_package_nonce @ SlideError::IncorrectNonce,
         constraint = Some(squad.key()) == expense_manager.squad @ SlideError::SquadMismatch
@@ -69,7 +69,7 @@ pub struct SquadsCreateExpensePackage<'info> {
 pub struct SquadsUpdateExpensePackage<'info> {
     #[account(
         mut,
-        seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
+        seeds = [b"expense-package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
         bump = expense_package.bump
     )]
     pub expense_package: Account<'info, ExpensePackage>,
@@ -102,7 +102,7 @@ pub struct SquadsUpdateExpensePackage<'info> {
 pub struct SquadsSubmitExpensePackage<'info> {
     #[account(
         mut,
-        seeds = [b"expense_package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
+        seeds = [b"expense-package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
         bump = expense_package.bump,
         constraint = expense_package.state == ExpensePackageState::Created @ SlideError::PackageFrozen,
         constraint = expense_package.quantity > 0 && !expense_package.name.is_empty() @ SlideError::PackageMissingInfo,
