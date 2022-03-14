@@ -55,6 +55,11 @@ class U64 extends AbstractLayout<BN> {
   }
   /** @override */
   encode(src: BN, b: Uint8Array, offset: number = 0): number {
+    if (src.isNeg()) {
+      throw new RangeError(
+        `BN with negative value ${src.toString()} cannot be encoded as u64`
+      );
+    }
     if (this.span + offset > b.length) {
       throw new RangeError(
         `encoding overruns Buffer (${this.property ?? "(unnamed)"}: U64)`
@@ -67,6 +72,30 @@ class U64 extends AbstractLayout<BN> {
 }
 
 Layout.u64 = (property?) => new U64(property);
+
+class I64 extends AbstractLayout<BN> {
+  constructor(property?: string) {
+    super(8, property);
+  }
+  /** @override */
+  decode(b: Uint8Array, offset: number = 0): BN {
+    const buffer = uint8ArrayToBuffer(b);
+    return new BN(buffer.slice(offset, offset + 8), "le").fromTwos(64);
+  }
+  /** @override */
+  encode(src: BN, b: Uint8Array, offset: number = 0): number {
+    if (this.span + offset > b.length) {
+      throw new RangeError(
+        `encoding overruns Buffer (${this.property ?? "(unnamed)"}: I64)`
+      );
+    }
+    const srcb = src.toTwos(64).toBuffer("le", 8);
+    srcb.copy(uint8ArrayToBuffer(b), offset);
+    return 8;
+  }
+}
+
+Layout.i64 = (property?) => new I64(property);
 
 export enum SquadsInstruction {
   CreateSquad,
@@ -126,34 +155,38 @@ export class AddMembersToSquadArgs {
 
 export class CreateProposalAccountArgs {
   instruction: SquadsInstruction = SquadsInstruction.CreateProposalAccount;
-  proposalType: number; //TODO: proposaltype enum
-  votesNum: number; // might be an enum as well?
-  title: string;
-  description: string;
-  link: string;
-  voteLabels: string[];
-  startTimestamp: BN;
-  closeTimestamp: BN;
-  amount: BN;
-  minimumOut: BN;
+  proposalType: number; // 1 byte
+  title: string; // 36 chars
+  description: string; // 496 chars
+  link: string; // 48 chars
+  votesNum: number; // 1 byte
+  voteLabels: string[]; // 220 total bytes (5 * 44)
+  startTimestamp: BN; // i64
+  closeTimestamp: BN; // i64
+  amount: BN; // OPTIONAL u64 (only needed for certain proposal types)
+  minimumOut: BN; // OPTIONAL u64 (only needed for certain proposal types)
   constructor(args: {
     proposalType: number;
-    votesNum: number;
     title: string;
     description: string;
     link: string;
+    votesNum: number;
     voteLabels: string[];
     startTimestamp: BN;
     closeTimestamp: BN;
-    amount: BN;
-    minimumOut: BN;
+    amount?: BN;
+    minimumOut?: BN;
   }) {
+    // TODO: more validation
+    if (args.voteLabels.length > 5) {
+      throw new RangeError("Cannot set more than 5 voteLabels");
+    }
     this.proposalType = args.proposalType;
+    this.title = ensureLength(args.title, 36);
+    this.description = ensureLength(args.description, 496);
+    this.link = ensureLength(args.link, 48);
     this.votesNum = args.votesNum;
-    this.title = args.title;
-    this.description = args.description;
-    this.link = args.link;
-    this.voteLabels = args.voteLabels;
+    this.voteLabels = args.voteLabels.map((label) => ensureLength(label, 44));
     this.startTimestamp = args.startTimestamp;
     this.closeTimestamp = args.closeTimestamp;
     this.amount = args.amount;
@@ -205,43 +238,28 @@ export const SquadsSchema: Map<SquadsInstruction, Structure<any>> = new Map([
       ),
     ]),
   ],
+  [
+    SquadsInstruction.CreateProposalAccount,
+    Layout.struct(
+      [
+        Layout.u8("instruction"),
+        Layout.u8("proposalType"),
+        Layout.fixedUtf8(36, "title"),
+        Layout.fixedUtf8(496, "description"),
+        Layout.fixedUtf8(48, "link"),
+        Layout.u8("votesNum"),
+        Layout.seq(Layout.fixedUtf8(44), 5, "votesLabels"),
+        Layout.i64("startTimestamp"),
+        Layout.i64("closeTimestamp"),
+        Layout.u64("amount"), // optional
+        Layout.u64("minimumOut"), // optional
+      ],
+      undefined,
+      true
+    ),
+  ],
 ]);
-//   [
-//     CreateSquadArgs,
-//     {
-//       kind: "struct",
-//       fields: [
-//         // ["instruction", "u8"],
-//         // ["allocationType", "u8"],
-//         // ["voteSupport", "u8"],
-//         // ["voteQuorum", "u8"],
-//         // ["coreThreshold", "u8"],
-//         ["squadName", "string"],
-//         ["description", "string"],
-//         ["token", "string"],
-//         ["randomId", "string"],
-//       ],
-//     },
-//   ],
-//   [
-//     CreateProposalAccountArgs,
-//     {
-//       kind: "struct",
-//       fields: [
-//         ["instruction", "u8"],
-//         ["proposalType", "u8"],
-//         ["votesNum", "u8"],
-//         ["title", "string"],
-//         ["description", "string"],
-//         ["link", "string"],
-//         ["voteLabels", ["string"]],
-//         ["startTimestamp", "i64"],
-//         ["closeTimestamp", "i64"],
-//         ["amount", "u64"],
-//         ["minimumOut", "u64"],
-//       ],
-//     },
-//   ],
+
 //   [
 //     CastVoteArgs,
 //     {

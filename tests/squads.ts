@@ -13,7 +13,11 @@ import {
 import * as anchor from "@project-serum/anchor";
 import { createExpenseManager } from "./program_rpc";
 import { assert, expect } from "chai";
-import { withAddMembersToSquad, withCreateSquad } from "./squads_sdk";
+import {
+  withAddMembersToSquad,
+  withCreateSquad,
+  withCreateProposalAccount,
+} from "./squads_sdk";
 
 async function setupSquad(
   program: Program<Slide>,
@@ -44,6 +48,33 @@ async function setupSquad(
   await program.provider.send(txn, signers(program, [user]));
 
   return { squad, mintOwner };
+}
+
+async function createReviewerAccessProposal(
+  program: Program<Slide>,
+  user: Keypair,
+  squad: PublicKey,
+  nonce: number
+) {
+  let instructions = [];
+  const { proposal } = await withCreateProposalAccount(
+    instructions,
+    SQUADS_PROGRAM_ID,
+    user.publicKey,
+    squad,
+    nonce,
+    0,
+    "Reviewer Access",
+    `[SLIDEPROPOSAL]: This grants reviewer-level access in Slide to public key ${user.publicKey.toString()}`,
+    2,
+    ["Approve", "Deny"]
+  );
+
+  const txn = new Transaction();
+  txn.add(...instructions);
+  await program.provider.send(txn, signers(program, [user]));
+
+  return { proposal };
 }
 
 type SquadsSharedData = {
@@ -207,5 +238,18 @@ describe("slide Squads integration tests", () => {
     );
 
     expect(expensePackageData.state).to.eql({ pending: {} });
+  });
+  it("grants reviewer access", async () => {
+    const { user, squad } = sharedData;
+    // creates a free text proposal
+    const { proposal } = await createReviewerAccessProposal(
+      program,
+      user,
+      squad,
+      1
+    );
+    // casts a vote on the proposal
+    // somehow force the proposal to end? vote tipping? or need to pick a nearby timestamp?
+    // then pass to executeAccessProposal
   });
 });

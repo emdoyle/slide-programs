@@ -9,7 +9,7 @@ import {
   SquadsInstruction,
   SquadsSchema,
 } from "./instruction";
-import { getMintOwnerAddressWithSeed } from "./address";
+import { getMintOwnerAddressAndBump } from "./address";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { SYSTEM_PROGRAM_ID } from "@solana/spl-governance";
 import { getMemberEquityAddressAndBump } from "../utils";
@@ -29,7 +29,7 @@ export const withAddMembersToSquad = async (
   const data = Buffer.alloc(10 + numAllocationBytes);
   SquadsSchema.get(SquadsInstruction.AddMembersToSquad).encode(args, data);
 
-  const [mintOwner] = await getMintOwnerAddressWithSeed(squad);
+  const [mintOwner] = await getMintOwnerAddressAndBump(squad);
 
   const keys = [
     {
