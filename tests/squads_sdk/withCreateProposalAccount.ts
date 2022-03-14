@@ -13,6 +13,7 @@ import { getProposalAccountAddressAndBump } from "./address";
 import { SQUADS_PROGRAM_ID, toBN } from "../utils";
 import { BN } from "@project-serum/anchor";
 
+const DEFAULT_PROPOSAL_START_DELTA = 24 * 60 * 60 * 1_000; // 1 day before now
 const DEFAULT_PROPOSAL_LIFETIME = 30 * 60 * 1_000; // 30 minutes
 
 // TODO: probably want a more specific function for text proposals?
@@ -34,10 +35,12 @@ export const withCreateProposalAccount = async (
   amount?: BN,
   minimumOut?: BN
 ) => {
-  const startTimestamp = startTime ? startTime.getTime() : Date.now();
+  const startTimestamp = startTime
+    ? startTime.getTime()
+    : Date.now() - DEFAULT_PROPOSAL_START_DELTA;
   const closeTimestamp = closeTime
     ? closeTime.getTime()
-    : startTimestamp + DEFAULT_PROPOSAL_LIFETIME;
+    : Date.now() + DEFAULT_PROPOSAL_LIFETIME;
   const args = new CreateProposalAccountArgs({
     proposalType,
     title,

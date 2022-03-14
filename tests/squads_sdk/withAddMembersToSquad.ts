@@ -9,10 +9,12 @@ import {
   SquadsInstruction,
   SquadsSchema,
 } from "./instruction";
-import { getMintOwnerAddressAndBump } from "./address";
+import {
+  getSquadMintAddressAndBump,
+  getMemberEquityAddressAndBumpSync,
+} from "./address";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { SYSTEM_PROGRAM_ID } from "@solana/spl-governance";
-import { getMemberEquityAddressAndBump } from "../utils";
 
 export const withAddMembersToSquad = async (
   instructions: TransactionInstruction[],
@@ -29,7 +31,7 @@ export const withAddMembersToSquad = async (
   const data = Buffer.alloc(10 + numAllocationBytes);
   SquadsSchema.get(SquadsInstruction.AddMembersToSquad).encode(args, data);
 
-  const [mintOwner] = await getMintOwnerAddressAndBump(squad);
+  const [squadMint] = await getSquadMintAddressAndBump(squad);
 
   const keys = [
     {
@@ -43,7 +45,7 @@ export const withAddMembersToSquad = async (
       isSigner: false,
     },
     {
-      pubkey: mintOwner,
+      pubkey: squadMint,
       isWritable: true,
       isSigner: false,
     },
@@ -64,7 +66,10 @@ export const withAddMembersToSquad = async (
     },
   ];
   allocations.forEach(([member]) => {
-    const [memberEquityRecord] = getMemberEquityAddressAndBump(member, squad);
+    const [memberEquityRecord] = getMemberEquityAddressAndBumpSync(
+      member,
+      squad
+    );
     keys.push({
       pubkey: member,
       isWritable: false,

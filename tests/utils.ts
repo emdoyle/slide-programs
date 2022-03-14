@@ -248,20 +248,3 @@ export function getAccessRecordAddressAndBump(
     programId
   );
 }
-
-export function getMemberEquityAddressAndBump(
-  member: PublicKey,
-  squad: PublicKey
-) {
-  return anchor.utils.publicKey.findProgramAddressSync(
-    [member.toBuffer(), squad.toBuffer(), Buffer.from("!memberequity")],
-    SQUADS_PROGRAM_ID
-  );
-}
-
-export function getSquadMintAddressAndBump(squad: PublicKey) {
-  return anchor.utils.publicKey.findProgramAddressSync(
-    [squad.toBuffer(), Buffer.from("!squadmint")],
-    SQUADS_PROGRAM_ID
-  );
-}

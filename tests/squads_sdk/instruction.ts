@@ -187,8 +187,9 @@ export class CreateProposalAccountArgs {
     this.link = ensureLength(args.link, 48);
     this.votesNum = args.votesNum;
     this.voteLabels = args.voteLabels.map((label) => ensureLength(label, 44));
-    this.startTimestamp = args.startTimestamp;
-    this.closeTimestamp = args.closeTimestamp;
+    // JS timestamps are in milliseconds, Solana cluster timestamp is in seconds
+    this.startTimestamp = args.startTimestamp.div(new BN(1_000));
+    this.closeTimestamp = args.closeTimestamp.div(new BN(1_000));
     this.amount = args.amount;
     this.minimumOut = args.minimumOut;
   }
@@ -258,26 +259,12 @@ export const SquadsSchema: Map<SquadsInstruction, Structure<any>> = new Map([
       true
     ),
   ],
+  [
+    SquadsInstruction.CastVote,
+    Layout.struct([Layout.u8("instruction"), Layout.u8("vote")]),
+  ],
+  [
+    SquadsInstruction.ExecuteProposal,
+    Layout.struct([Layout.u8("instruction"), Layout.fixedUtf8(10, "randomId")]),
+  ],
 ]);
-
-//   [
-//     CastVoteArgs,
-//     {
-//       kind: "struct",
-//       fields: [
-//         ["instruction", "u8"],
-//         ["vote", "u8"],
-//       ],
-//     },
-//   ],
-//   [
-//     ExecuteProposalArgs,
-//     {
-//       kind: "struct",
-//       fields: [
-//         ["instruction", "u8"],
-//         ["randomId", "string"],
-//       ],
-//     },
-//   ],
-// ]);

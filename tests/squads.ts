@@ -4,8 +4,6 @@ import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import {
   getExpensePackageAddressAndBump,
   getFundedAccount,
-  getMemberEquityAddressAndBump,
-  getSquadMintAddressAndBump,
   signers,
   SQUADS_PROGRAM_ID,
   toBN,
@@ -17,7 +15,10 @@ import {
   withAddMembersToSquad,
   withCreateSquad,
   withCreateProposalAccount,
+  getMemberEquityAddressAndBump,
+  getSquadMintAddressAndBump,
 } from "./squads_sdk";
+import { withCastVote } from "./squads_sdk/withCastVote";
 
 async function setupSquad(
   program: Program<Slide>,
@@ -25,7 +26,7 @@ async function setupSquad(
   name?: string
 ) {
   let instructions = [];
-  const { squad, mintOwner } = await withCreateSquad(
+  const { squad, squadMint } = await withCreateSquad(
     instructions,
     SQUADS_PROGRAM_ID,
     user.publicKey,
@@ -47,7 +48,7 @@ async function setupSquad(
   txn.add(...instructions);
   await program.provider.send(txn, signers(program, [user]));
 
-  return { squad, mintOwner };
+  return { squad, squadMint };
 }
 
 async function createReviewerAccessProposal(
@@ -77,6 +78,30 @@ async function createReviewerAccessProposal(
   return { proposal };
 }
 
+async function castVoteOnProposal(
+  program: Program<Slide>,
+  user: Keypair,
+  squad: PublicKey,
+  proposal: PublicKey,
+  vote: number
+) {
+  let instructions = [];
+  const { voteAccount } = await withCastVote(
+    instructions,
+    SQUADS_PROGRAM_ID,
+    user.publicKey,
+    squad,
+    proposal,
+    vote
+  );
+
+  const txn = new Transaction();
+  txn.add(...instructions);
+  await program.provider.send(txn, signers(program, [user]));
+
+  return { voteAccount };
+}
+
 type SquadsSharedData = {
   user?: Keypair;
   squad?: PublicKey;
@@ -102,8 +127,8 @@ describe("slide Squads integration tests", () => {
   it("sets up squad", async () => {
     const user = await getFundedAccount(program);
     const { squad } = await setupSquad(program, user, squadName);
-    const [squadMint] = getSquadMintAddressAndBump(squad);
-    const [memberEquityRecord] = getMemberEquityAddressAndBump(
+    const [squadMint] = await getSquadMintAddressAndBump(squad);
+    const [memberEquityRecord] = await getMemberEquityAddressAndBump(
       user.publicKey,
       squad
     );
@@ -248,7 +273,16 @@ describe("slide Squads integration tests", () => {
       squad,
       1
     );
+
     // casts a vote on the proposal
+    const { voteAccount: vote } = await castVoteOnProposal(
+      program,
+      user,
+      squad,
+      proposal,
+      0
+    );
+
     // somehow force the proposal to end? vote tipping? or need to pick a nearby timestamp?
     // then pass to executeAccessProposal
   });
