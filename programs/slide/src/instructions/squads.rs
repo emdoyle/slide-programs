@@ -1,7 +1,7 @@
 use crate::state::*;
 use crate::utils::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::TokenAccount;
+use anchor_spl::token::{Mint, TokenAccount};
 
 #[derive(Accounts)]
 #[instruction(name: String)]
@@ -131,6 +131,50 @@ pub struct SquadsSubmitExpensePackage<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 }
+
+#[derive(Accounts)]
+pub struct SquadsExecuteAccessProposal<'info> {
+    #[account(
+        seeds = [squad.key().as_ref(), &proposal.proposal_index.to_le_bytes(), b"!proposal"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID,
+        constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType,
+        constraint = proposal.executed == false @ SlideError::ProposalAlreadyExecuted
+    )]
+    pub proposal: Box<Account<'info, Proposal>>,
+    #[account(
+        init,
+        seeds = [b"access-record", expense_manager.key().as_ref(), member.key().as_ref()],
+        bump,
+        payer = signer,
+        space = AccessRecord::MAX_SIZE + 8
+    )]
+    pub access_record: Account<'info, AccessRecord>,
+    #[account(
+        seeds = [b"expense-manager", expense_manager.name.as_bytes()],
+        bump = expense_manager.bump,
+        constraint = Some(squad.key()) == expense_manager.squad @ SlideError::SquadMismatch
+    )]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(
+        seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID
+    )]
+    pub squad: Box<Account<'info, Squad>>,
+    #[account(
+        seeds = [squad.key().as_ref(), b"!squadmint"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID
+    )]
+    pub squad_mint: Account<'info, Mint>,
+    /// CHECK: Any address can be a member of a Squad
+    pub member: AccountInfo<'info>,
+    pub system_program: Program<'info, System>,
+    #[account(mut)]
+    pub signer: Signer<'info>,
+}
+
 //
 // #[derive(Accounts)]
 // #[instruction(owner_pubkey: Pubkey, nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]
@@ -163,10 +207,6 @@ pub struct SquadsSubmitExpensePackage<'info> {
 // #[derive(Accounts)]
 // #[instruction()]
 // pub struct SquadsCreateWithdrawalProposal<'info> {}
-//
-// #[derive(Accounts)]
-// #[instruction()]
-// pub struct ExecuteAccessProposal<'info> {}
 //
 // #[derive(Accounts)]
 // #[instruction()]

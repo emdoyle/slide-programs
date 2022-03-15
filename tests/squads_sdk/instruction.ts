@@ -160,7 +160,7 @@ export class CreateProposalAccountArgs {
   description: string; // 496 chars
   link: string; // 48 chars
   votesNum: number; // 1 byte
-  voteLabels: string[]; // 220 total bytes (5 * 44)
+  votesLabels: string[]; // 220 total bytes (5 * 44)
   startTimestamp: BN; // i64
   closeTimestamp: BN; // i64
   amount: BN; // OPTIONAL u64 (only needed for certain proposal types)
@@ -171,22 +171,22 @@ export class CreateProposalAccountArgs {
     description: string;
     link: string;
     votesNum: number;
-    voteLabels: string[];
+    votesLabels: string[];
     startTimestamp: BN;
     closeTimestamp: BN;
     amount?: BN;
     minimumOut?: BN;
   }) {
     // TODO: more validation
-    if (args.voteLabels.length > 5) {
-      throw new RangeError("Cannot set more than 5 voteLabels");
+    if (args.votesLabels.length > 5) {
+      throw new RangeError("Cannot set more than 5 votesLabels");
     }
     this.proposalType = args.proposalType;
     this.title = ensureLength(args.title, 36);
     this.description = ensureLength(args.description, 496);
     this.link = ensureLength(args.link, 48);
     this.votesNum = args.votesNum;
-    this.voteLabels = args.voteLabels.map((label) => ensureLength(label, 44));
+    this.votesLabels = args.votesLabels.map((label) => ensureLength(label, 44));
     // JS timestamps are in milliseconds, Solana cluster timestamp is in seconds
     this.startTimestamp = args.startTimestamp.div(new BN(1_000));
     this.closeTimestamp = args.closeTimestamp.div(new BN(1_000));

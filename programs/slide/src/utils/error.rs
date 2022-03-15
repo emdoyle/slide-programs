@@ -14,6 +14,12 @@ pub enum SlideError {
     SquadMismatch,
     #[msg("Squad mint does not match TokenAccount mint")]
     SquadMintMismatch,
+    #[msg("Proposal is not the right type for this instruction")]
+    WrongProposalType,
+    #[msg("Proposal has already been executed")]
+    ProposalAlreadyExecuted,
+    #[msg("Proposal has invalid data for execution")]
+    InvalidProposal,
     #[msg("ExpensePackage is not owned by signer, or not related to provided expense manager")]
     PackageOwnershipMismatch,
     #[msg("ExpensePackage has already been submitted or is otherwise locked")]

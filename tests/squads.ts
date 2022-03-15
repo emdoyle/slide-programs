@@ -2,6 +2,7 @@ import { Slide } from "../target/types/slide";
 import { BN, Program } from "@project-serum/anchor";
 import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import {
+  getAccessRecordAddressAndBump,
   getExpensePackageAddressAndBump,
   getFundedAccount,
   signers,
@@ -272,7 +273,7 @@ describe("slide Squads integration tests", () => {
     expect(expensePackageData.state).to.eql({ pending: {} });
   });
   it("grants reviewer access", async () => {
-    const { user, squad } = sharedData;
+    const { user, squad, squadMint, expenseManager } = sharedData;
     // creates a free text proposal
     const { proposal } = await createReviewerAccessProposal(
       program,
@@ -282,15 +283,34 @@ describe("slide Squads integration tests", () => {
     );
 
     // casts a vote on the proposal
-    const { voteAccount: vote } = await castVoteOnProposal(
-      program,
-      user,
-      squad,
-      proposal,
-      0
+    await castVoteOnProposal(program, user, squad, proposal, 0);
+
+    // execute the proposal
+    const [accessRecord] = getAccessRecordAddressAndBump(
+      program.programId,
+      expenseManager,
+      user.publicKey
+    );
+    await program.methods
+      .squadsExecuteAccessProposal()
+      .accounts({
+        proposal,
+        accessRecord,
+        expenseManager,
+        squad,
+        squadMint,
+        member: user.publicKey,
+        signer: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    sharedData.accessRecord = accessRecord;
+
+    const accessRecordData = await program.account.accessRecord.fetch(
+      accessRecord
     );
 
-    // somehow force the proposal to end? vote tipping? or need to pick a nearby timestamp?
-    // then pass to executeAccessProposal
+    expect(accessRecordData.role).to.eql({ reviewer: {} });
   });
 });
