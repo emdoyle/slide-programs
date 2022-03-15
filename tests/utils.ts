@@ -25,8 +25,13 @@ export const SPL_GOV_PROGRAM_ID = new PublicKey(
 // );
 
 // mainnet
+// export const SQUADS_PROGRAM_ID = new PublicKey(
+//   "SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT"
+// );
+
+// devnet manual deploy
 export const SQUADS_PROGRAM_ID = new PublicKey(
-  "SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT"
+  "3BgFvAdsYQsX7MfudNcXcLFizyy2XSBL3uuZeUysR2p7"
 );
 
 export type Payer = Keypair | Wallet;
