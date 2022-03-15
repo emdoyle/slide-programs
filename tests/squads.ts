@@ -1,7 +1,13 @@
 import { Slide } from "../target/types/slide";
 import { BN, Program } from "@project-serum/anchor";
-import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import {
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  Transaction,
+} from "@solana/web3.js";
+import {
+  airdropToAccount,
   getAccessRecordAddressAndBump,
   getExpensePackageAddressAndBump,
   getFundedAccount,
@@ -162,6 +168,9 @@ describe("slide Squads integration tests", () => {
       user,
       squadName
     );
+    // won't work on mainnet
+    await airdropToAccount(program, squadSol);
+
     const [memberEquityRecord] = await getMemberEquityAddressAndBump(
       user.publicKey,
       squad
@@ -191,6 +200,9 @@ describe("slide Squads integration tests", () => {
       })
       .signers(signers(program, [user]))
       .rpc();
+
+    // won't work on mainnet
+    await airdropToAccount(program, expenseManager);
 
     const expenseManagerData = await program.account.expenseManager.fetch(
       expenseManager

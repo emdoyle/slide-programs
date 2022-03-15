@@ -116,6 +116,17 @@ async function getFundedAccountFromProgramWallet(
   return account;
 }
 
+export async function airdropToAccount(
+  program: Program<Slide>,
+  account: PublicKey
+) {
+  const signature = await program.provider.connection.requestAirdrop(
+    account,
+    2 * LAMPORTS_PER_SOL
+  );
+  await program.provider.connection.confirmTransaction(signature);
+}
+
 export async function getFundedAccount(
   program: Program<Slide>
 ): Promise<Keypair> {
@@ -123,11 +134,7 @@ export async function getFundedAccount(
     return await getFundedAccountFromProgramWallet(program);
   }
   const account = anchor.web3.Keypair.generate();
-  const signature = await program.provider.connection.requestAirdrop(
-    account.publicKey,
-    2 * LAMPORTS_PER_SOL
-  );
-  await program.provider.connection.confirmTransaction(signature);
+  await airdropToAccount(program, account.publicKey);
   return account;
 }
 

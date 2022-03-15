@@ -205,6 +205,7 @@ pub struct SquadsExecuteWithdrawalProposal<'info> {
     )]
     pub squad_mint: Account<'info, Mint>,
     #[account(
+        mut,
         seeds = [squad.key().as_ref(), b"!squadsol"],
         bump,
         seeds::program = SQUADS_PROGRAM_ID
