@@ -60,3 +60,10 @@ export async function getVoteAccountAddressAndBump(
     SQUADS_PROGRAM_ID
   );
 }
+
+export async function getSquadTreasuryAddressAndBump(squad: PublicKey) {
+  return await PublicKey.findProgramAddress(
+    [squad.toBuffer(), Buffer.from("!squadsol")],
+    SQUADS_PROGRAM_ID
+  );
+}

@@ -207,7 +207,7 @@ export class ExecuteProposalArgs {
   instruction: SquadsInstruction = SquadsInstruction.ExecuteProposal;
   randomId: string;
   constructor(args: { randomId: string }) {
-    this.randomId = args.randomId;
+    this.randomId = ensureLength(args.randomId, 10);
   }
 }
 

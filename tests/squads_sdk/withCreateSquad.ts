@@ -86,5 +86,5 @@ export const withCreateSquad = async (
     })
   );
 
-  return { squad, squadMint };
+  return { squad, squadMint, randomId };
 };

@@ -15,13 +15,13 @@ use std::ops::Deref;
 // pub const SQUADS_PROGRAM_ID: Pubkey =
 //     solana_program::pubkey!("SQDSm7ifFqwmgxY5aL59BtHcBGHEgbg5thh4Y9ytdn3");
 
-// mainnet
-// pub const SQUADS_PROGRAM_ID: Pubkey =
-//     solana_program::pubkey!("SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT");
-
 // devnet manual deploy
+// pub const SQUADS_PROGRAM_ID: Pubkey =
+//     solana_program::pubkey!("3BgFvAdsYQsX7MfudNcXcLFizyy2XSBL3uuZeUysR2p7");
+
+// mainnet
 pub const SQUADS_PROGRAM_ID: Pubkey =
-    solana_program::pubkey!("3BgFvAdsYQsX7MfudNcXcLFizyy2XSBL3uuZeUysR2p7");
+    solana_program::pubkey!("SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT");
 
 pub struct Squad(RawSquad);
 

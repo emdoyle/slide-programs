@@ -16,9 +16,8 @@ import {
   withCreateSquad,
   withCreateProposalAccount,
   getMemberEquityAddressAndBump,
-  getSquadMintAddressAndBump,
+  withCastVote,
 } from "./squads_sdk";
-import { withCastVote } from "./squads_sdk/withCastVote";
 
 async function setupSquad(
   program: Program<Slide>,
@@ -26,7 +25,7 @@ async function setupSquad(
   name?: string
 ) {
   let instructions = [];
-  const { squad, squadMint } = await withCreateSquad(
+  const { squad, squadMint, randomId } = await withCreateSquad(
     instructions,
     SQUADS_PROGRAM_ID,
     user.publicKey,
@@ -48,7 +47,7 @@ async function setupSquad(
   txn.add(...instructions);
   await program.provider.send(txn, signers(program, [user]));
 
-  return { squad, squadMint };
+  return { squad, squadMint, randomId };
 }
 
 async function createReviewerAccessProposal(
@@ -105,12 +104,16 @@ async function castVoteOnProposal(
 type SquadsSharedData = {
   user?: Keypair;
   squad?: PublicKey;
+  randomId?: string;
   squadMint?: PublicKey;
   memberEquityRecord?: PublicKey;
   expenseManager?: PublicKey;
   accessRecord?: PublicKey;
   expensePackage?: PublicKey;
   packageNonce?: number;
+  squadSol?: PublicKey;
+  payload?: PublicKey;
+  payloadKeypair?: Keypair;
 };
 
 describe("slide Squads integration tests", () => {
@@ -126,14 +129,18 @@ describe("slide Squads integration tests", () => {
 
   it("sets up squad", async () => {
     const user = await getFundedAccount(program);
-    const { squad } = await setupSquad(program, user, squadName);
-    const [squadMint] = await getSquadMintAddressAndBump(squad);
+    const { squad, squadMint, randomId } = await setupSquad(
+      program,
+      user,
+      squadName
+    );
     const [memberEquityRecord] = await getMemberEquityAddressAndBump(
       user.publicKey,
       squad
     );
     sharedData.user = user;
     sharedData.squad = squad;
+    sharedData.randomId = randomId;
     sharedData.squadMint = squadMint;
     sharedData.memberEquityRecord = memberEquityRecord;
   });

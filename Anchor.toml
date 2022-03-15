@@ -15,7 +15,7 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 startup_wait = 15000
 
 [test.validator]
-url = "d"
+url = "m"
 
 # SPL Governance shared Program
 [[test.validator.clone]]
@@ -29,16 +29,16 @@ address = "BZYjZ2ZbtAawP9WPt5yXszcoMWTvNFFX4AMbnDojtSGL"
 [[test.validator.clone]]
 # devnet
 # address = "SQDSm7ifFqwmgxY5aL59BtHcBGHEgbg5thh4Y9ytdn3"
-# mainnet
-# address = "SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT"
 # devnet manual deploy
-address = "3BgFvAdsYQsX7MfudNcXcLFizyy2XSBL3uuZeUysR2p7"
+# address = "3BgFvAdsYQsX7MfudNcXcLFizyy2XSBL3uuZeUysR2p7"
+# mainnet
+address = "SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT"
 
 # Squads shared Program Data Address
 [[test.validator.clone]]
 # devnet
 # address = "4MCvGwea4ko8SGrKMxJoyFWdN8MD3vPNXLA2J1G6KyW6"
-# mainnet
-# address = "2SzQW4XUwVjqeovfFpPJEZDU3rxCEekgbzq2AfL2mxq6"
 # devnet manual deploy
-address = "A3W5BA1NaQhmdmNaPfjfRXS1diwCbd8Xh7zTUyQ1omT5"
+# address = "A3W5BA1NaQhmdmNaPfjfRXS1diwCbd8Xh7zTUyQ1omT5"
+# mainnet
+address = "2SzQW4XUwVjqeovfFpPJEZDU3rxCEekgbzq2AfL2mxq6"
