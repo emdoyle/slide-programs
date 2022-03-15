@@ -26,7 +26,7 @@ async function setupSquad(
   name?: string
 ) {
   let instructions = [];
-  const { squad, squadMint, randomId } = await withCreateSquad(
+  const { squad, squadMint, squadSol, randomId } = await withCreateSquad(
     instructions,
     SQUADS_PROGRAM_ID,
     user.publicKey,
@@ -48,7 +48,7 @@ async function setupSquad(
   txn.add(...instructions);
   await program.provider.send(txn, signers(program, [user]));
 
-  return { squad, squadMint, randomId };
+  return { squad, squadMint, squadSol, randomId };
 }
 
 async function createReviewerAccessProposal(
@@ -67,6 +67,33 @@ async function createReviewerAccessProposal(
     0,
     "Reviewer Access",
     `[SLIDEPROPOSAL]: This grants reviewer-level access in Slide to public key ${user.publicKey.toString()}`,
+    2,
+    ["Approve", "Deny"]
+  );
+
+  const txn = new Transaction();
+  txn.add(...instructions);
+  await program.provider.send(txn, signers(program, [user]));
+
+  return { proposal };
+}
+
+async function createWithdrawalProposal(
+  program: Program<Slide>,
+  user: Keypair,
+  squad: PublicKey,
+  nonce: number
+) {
+  let instructions = [];
+  const { proposal } = await withCreateProposalAccount(
+    instructions,
+    SQUADS_PROGRAM_ID,
+    user.publicKey,
+    squad,
+    nonce,
+    0,
+    "Withdrawal",
+    "[SLIDEPROPOSAL]: This withdraws the balance of expense manager to the Squads SOL treasury",
     2,
     ["Approve", "Deny"]
   );
@@ -130,7 +157,7 @@ describe("slide Squads integration tests", () => {
 
   it("sets up squad", async () => {
     const user = await getFundedAccount(program);
-    const { squad, squadMint, randomId } = await setupSquad(
+    const { squad, squadMint, squadSol, randomId } = await setupSquad(
       program,
       user,
       squadName
@@ -143,6 +170,7 @@ describe("slide Squads integration tests", () => {
     sharedData.squad = squad;
     sharedData.randomId = randomId;
     sharedData.squadMint = squadMint;
+    sharedData.squadSol = squadSol;
     sharedData.memberEquityRecord = memberEquityRecord;
   });
   it("creates and initializes an expense manager", async () => {
@@ -312,5 +340,31 @@ describe("slide Squads integration tests", () => {
     );
 
     expect(accessRecordData.role).to.eql({ reviewer: {} });
+  });
+  it("withdraws from expense manager", async () => {
+    const { user, squad, squadSol, squadMint, expenseManager } = sharedData;
+    // creates a free text proposal
+    const { proposal } = await createWithdrawalProposal(
+      program,
+      user,
+      squad,
+      2
+    );
+
+    // casts a vote on the proposal
+    await castVoteOnProposal(program, user, squad, proposal, 0);
+
+    await program.methods
+      .squadsExecuteWithdrawalProposal()
+      .accounts({
+        proposal,
+        expenseManager,
+        squad,
+        squadMint,
+        squadTreasury: squadSol,
+        signer: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
   });
 });

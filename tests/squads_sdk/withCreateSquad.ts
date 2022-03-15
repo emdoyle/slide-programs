@@ -10,7 +10,11 @@ import {
   SquadsInstruction,
   SquadsSchema,
 } from "./instruction";
-import { getSquadMintAddressAndBump, getSquadAddressAndBump } from "./address";
+import {
+  getSquadMintAddressAndBump,
+  getSquadAddressAndBump,
+  getSquadTreasuryAddressAndBump,
+} from "./address";
 
 function getRandomId() {
   // generate a random number -> convert to alphanumeric (base 36) -> append 10 zeroes (trailing zeroes were truncated)
@@ -44,6 +48,7 @@ export const withCreateSquad = async (
 
   const [squad] = await getSquadAddressAndBump(payer, randomId);
   const [squadMint] = await getSquadMintAddressAndBump(squad);
+  const [squadSol] = await getSquadTreasuryAddressAndBump(squad);
 
   const keys = [
     {
@@ -86,5 +91,5 @@ export const withCreateSquad = async (
     })
   );
 
-  return { squad, squadMint, randomId };
+  return { squad, squadMint, squadSol, randomId };
 };

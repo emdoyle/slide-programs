@@ -285,4 +285,79 @@ pub mod slide {
 
         Ok(())
     }
+    pub fn squads_execute_withdrawal_proposal(
+        ctx: Context<SquadsExecuteWithdrawalProposal>,
+    ) -> Result<()> {
+        let proposal = &ctx.accounts.proposal;
+        let squad = &ctx.accounts.squad;
+        let squad_mint = &ctx.accounts.squad_mint;
+        let squad_treasury = &ctx.accounts.squad_treasury;
+        let expense_manager = &ctx.accounts.expense_manager;
+
+        // TODO: move vote logic, validation logic elsewhere
+
+        if proposal.votes_num != 2 {
+            return err!(SlideError::InvalidProposal);
+        }
+
+        if proposal.votes_labels.get(0).unwrap().trim_end() != "Approve"
+            || proposal.votes_labels.get(1).unwrap().trim_end() != "Deny"
+        {
+            return err!(SlideError::InvalidProposal);
+        }
+
+        // need to do a full parse of the description...
+        // could be regex?
+        // or strict byte/char offsets
+        if !proposal.description.starts_with("[SLIDEPROPOSAL]") {
+            return err!(SlideError::InvalidProposal);
+        }
+
+        let pass_votes = *proposal.votes.get(0).unwrap();
+        let fail_votes = *proposal.votes.get(1).unwrap();
+        if pass_votes < fail_votes {
+            return err!(SlideError::InvalidProposal);
+        }
+
+        // check quorum & support
+        let curr_quorum_percent;
+        let current_support_percent;
+        if proposal.execute_ready {
+            curr_quorum_percent =
+                (proposal.has_voted.len() as f32 / proposal.members_at_execute as f32) * 100.0;
+
+            current_support_percent =
+                (pass_votes as f32 / proposal.supply_at_execute as f32) * 100.0;
+        } else {
+            curr_quorum_percent =
+                (proposal.has_voted.len() as f32 / squad.members.len() as f32) * 100.0;
+
+            current_support_percent = (pass_votes as f32 / squad_mint.supply as f32) * 100.0;
+        }
+
+        if curr_quorum_percent < squad.vote_quorum as f32 {
+            return err!(SlideError::InvalidProposal);
+        }
+
+        if current_support_percent < squad.vote_support as f32 {
+            return err!(SlideError::InvalidProposal);
+        }
+
+        let manager_info = expense_manager.to_account_info();
+        let squad_treasury_info = squad_treasury.to_account_info();
+
+        let mut manager_balance = manager_info.try_borrow_mut_lamports()?;
+        let mut squad_treasury_balance = squad_treasury_info.try_borrow_mut_lamports()?;
+
+        // need to determine manager balance aside from rent-exemption
+        let rent = Rent::get()?;
+        let rent_exempt_lamports = rent.minimum_balance(manager_info.data_len()).max(1);
+
+        let withdrawal_amount = **manager_balance - rent_exempt_lamports;
+
+        **manager_balance -= withdrawal_amount;
+        **squad_treasury_balance += withdrawal_amount;
+
+        Ok(())
+    }
 }

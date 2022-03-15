@@ -175,6 +175,45 @@ pub struct SquadsExecuteAccessProposal<'info> {
     pub signer: Signer<'info>,
 }
 
+#[derive(Accounts)]
+pub struct SquadsExecuteWithdrawalProposal<'info> {
+    #[account(
+        seeds = [squad.key().as_ref(), &proposal.proposal_index.to_le_bytes(), b"!proposal"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID,
+        constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType,
+        constraint = proposal.executed == false @ SlideError::ProposalAlreadyExecuted
+    )]
+    pub proposal: Box<Account<'info, Proposal>>,
+    #[account(
+        mut,
+        seeds = [b"expense-manager", expense_manager.name.as_bytes()],
+        bump = expense_manager.bump,
+        constraint = Some(squad.key()) == expense_manager.squad @ SlideError::SquadMismatch
+    )]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(
+        seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID
+    )]
+    pub squad: Box<Account<'info, Squad>>,
+    #[account(
+        seeds = [squad.key().as_ref(), b"!squadmint"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID
+    )]
+    pub squad_mint: Account<'info, Mint>,
+    #[account(
+        seeds = [squad.key().as_ref(), b"!squadsol"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID
+    )]
+    pub squad_treasury: SystemAccount<'info>,
+    #[account(mut)]
+    pub signer: Signer<'info>,
+}
+
 //
 // #[derive(Accounts)]
 // #[instruction(owner_pubkey: Pubkey, nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]
@@ -207,7 +246,3 @@ pub struct SquadsExecuteAccessProposal<'info> {
 // #[derive(Accounts)]
 // #[instruction()]
 // pub struct SquadsCreateWithdrawalProposal<'info> {}
-//
-// #[derive(Accounts)]
-// #[instruction()]
-// pub struct ExecuteWithdrawalProposal<'info> {}
