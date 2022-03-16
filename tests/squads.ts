@@ -4,6 +4,7 @@ import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import {
   airdropToAccount,
   getAccessRecordAddressAndBump,
+  getBalance,
   getExpensePackageAddressAndBump,
   getFundedAccount,
   signers,
@@ -381,7 +382,32 @@ describe("slide Squads integration tests", () => {
 
     expect(expensePackageData.state).to.eql({ approved: {} });
   });
-  it("withdraws from expense package", async () => {});
+  it("withdraws from expense package", async () => {
+    const { user, expensePackage, packageNonce } = sharedData;
+
+    const userBalancePre = await getBalance(program, user.publicKey);
+    const packageBalancePre = await getBalance(program, expensePackage);
+
+    await program.methods
+      .withdrawFromExpensePackage(packageNonce)
+      .accounts({
+        expensePackage,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const userBalancePost = await getBalance(program, user.publicKey);
+    const packageBalancePost = await getBalance(program, expensePackage);
+
+    // why is a fee not being charged? no idea
+    expect(userBalancePost - userBalancePre).to.equal(
+      packageQuantity.toNumber()
+    );
+    expect(packageBalancePre - packageBalancePost).to.equal(
+      packageQuantity.toNumber()
+    );
+  });
   it("creates second expense package", async () => {});
   it("submits second expense package", async () => {});
   it("denies second expense package", async () => {});
