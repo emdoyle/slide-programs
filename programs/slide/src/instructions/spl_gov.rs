@@ -185,6 +185,7 @@ pub struct SPLGovApproveExpensePackage<'info> {
     )]
     pub expense_package: Account<'info, ExpensePackage>,
     #[account(
+        mut,
         seeds = [b"expense-manager", expense_manager.name.as_bytes()],
         bump = expense_manager.bump,
         constraint = Some(realm) == expense_manager.realm @ SlideError::SPLGovRealmMismatch

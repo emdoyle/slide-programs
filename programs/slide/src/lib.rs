@@ -65,6 +65,7 @@ pub mod slide {
     ) -> Result<()> {
         let access_record = &mut ctx.accounts.access_record;
 
+        access_record.bump = *ctx.bumps.get("access_record").unwrap();
         access_record.role = role;
 
         Ok(())

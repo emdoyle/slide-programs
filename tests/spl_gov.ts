@@ -462,9 +462,39 @@ describe("slide SPL Governance integration tests", () => {
       accessRecord
     );
 
+    sharedData.accessRecord = accessRecord;
+
     expect(accessRecordData.role).to.eql({ reviewer: {} });
   });
-  it("approves expense package", async () => {});
+  it("approves expense package", async () => {
+    const {
+      user,
+      expensePackage,
+      expenseManager,
+      packageNonce,
+      realm,
+      tokenOwnerRecord,
+      accessRecord,
+    } = sharedData;
+
+    await program.methods
+      .splGovApproveExpensePackage(realm, packageNonce)
+      .accounts({
+        expensePackage,
+        expenseManager,
+        tokenOwnerRecord,
+        accessRecord,
+        authority: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
+
+    expect(expensePackageData.state).to.eql({ approved: {} });
+  });
   it("withdraws from expense package", async () => {});
   it("creates second expense package", async () => {});
   it("submits second expense package", async () => {});
@@ -589,11 +619,9 @@ describe("slide SPL Governance integration tests", () => {
     const managerBalancePost = await getBalance(program, expenseManager);
     const treasuryBalancePost = await getBalance(program, nativeTreasury);
 
-    expect(managerBalancePre - managerBalancePost).to.equal(
-      2 * LAMPORTS_PER_SOL
-    );
-    expect(treasuryBalancePost - treasuryBalancePre).to.equal(
-      2 * LAMPORTS_PER_SOL
-    );
+    // packageQuantity is subtracted because one package was approved (reimbursed from manager)
+    const withdrawalAmount = 2 * LAMPORTS_PER_SOL - packageQuantity.toNumber();
+    expect(managerBalancePre - managerBalancePost).to.equal(withdrawalAmount);
+    expect(treasuryBalancePost - treasuryBalancePre).to.equal(withdrawalAmount);
   });
 });
