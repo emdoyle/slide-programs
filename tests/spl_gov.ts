@@ -495,10 +495,126 @@ describe("slide SPL Governance integration tests", () => {
 
     expect(expensePackageData.state).to.eql({ approved: {} });
   });
-  it("withdraws from expense package", async () => {});
-  it("creates second expense package", async () => {});
-  it("submits second expense package", async () => {});
-  it("denies expense package", async () => {});
+  it("withdraws from expense package", async () => {
+    const { user, expensePackage, packageNonce } = sharedData;
+
+    const userBalancePre = await getBalance(program, user.publicKey);
+    const packageBalancePre = await getBalance(program, expensePackage);
+
+    await program.methods
+      .withdrawFromExpensePackage(packageNonce)
+      .accounts({
+        expensePackage,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const userBalancePost = await getBalance(program, user.publicKey);
+    const packageBalancePost = await getBalance(program, expensePackage);
+
+    // why is a fee not being charged? no idea
+    expect(userBalancePost - userBalancePre).to.equal(
+      packageQuantity.toNumber()
+    );
+    expect(packageBalancePre - packageBalancePost).to.equal(
+      packageQuantity.toNumber()
+    );
+  });
+  it("creates second expense package", async () => {
+    const { user, realm, tokenOwnerRecord, expenseManager } = sharedData;
+    const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
+      expenseManager,
+      user.publicKey,
+      1,
+      program.programId
+    );
+    await program.methods
+      .splGovCreateExpensePackage(
+        realm,
+        1,
+        packageName,
+        packageDescription,
+        packageQuantity
+      )
+      .accounts({
+        expensePackage: expensePackagePDA,
+        expenseManager,
+        tokenOwnerRecord,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackagePDA
+    );
+    const expenseManagerData = await program.account.expenseManager.fetch(
+      expenseManager
+    );
+
+    sharedData.expensePackage = expensePackagePDA;
+    sharedData.packageNonce = 1;
+
+    expect(expensePackageData.bump).to.equal(packageBump);
+    expect(expensePackageData.state).to.eql({ created: {} });
+    expect(expenseManagerData.expensePackageNonce).to.equal(2);
+  });
+  it("submits second expense package", async () => {
+    const {
+      user,
+      realm,
+      tokenOwnerRecord,
+      expenseManager,
+      expensePackage,
+      packageNonce,
+    } = sharedData;
+    await program.methods
+      .splGovSubmitExpensePackage(realm, packageNonce)
+      .accounts({
+        expensePackage,
+        expenseManager,
+        tokenOwnerRecord,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
+
+    expect(expensePackageData.state).to.eql({ pending: {} });
+  });
+  it("denies expense package", async () => {
+    const {
+      user,
+      expensePackage,
+      expenseManager,
+      packageNonce,
+      realm,
+      tokenOwnerRecord,
+      accessRecord,
+    } = sharedData;
+
+    await program.methods
+      .splGovDenyExpensePackage(realm, packageNonce)
+      .accounts({
+        expensePackage,
+        expenseManager,
+        tokenOwnerRecord,
+        accessRecord,
+        authority: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
+
+    expect(expensePackageData.state).to.eql({ denied: {} });
+  });
   it("withdraws from expense manager", async () => {
     // generate instructions for withdrawal
     const {
