@@ -408,9 +408,101 @@ describe("slide Squads integration tests", () => {
       packageQuantity.toNumber()
     );
   });
-  it("creates second expense package", async () => {});
-  it("submits second expense package", async () => {});
-  it("denies second expense package", async () => {});
+  it("creates second expense package", async () => {
+    const { user, squad, memberEquityRecord, expenseManager } = sharedData;
+    const [expensePackagePDA, packageBump] = getExpensePackageAddressAndBump(
+      expenseManager,
+      user.publicKey,
+      1,
+      program.programId
+    );
+    await program.methods
+      .squadsCreateExpensePackage(
+        1,
+        packageName,
+        packageDescription,
+        packageQuantity
+      )
+      .accounts({
+        expensePackage: expensePackagePDA,
+        expenseManager,
+        memberEquity: memberEquityRecord,
+        squad,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackagePDA
+    );
+    const expenseManagerData = await program.account.expenseManager.fetch(
+      expenseManager
+    );
+
+    sharedData.expensePackage = expensePackagePDA;
+    sharedData.packageNonce = 1;
+
+    expect(expensePackageData.bump).to.equal(packageBump);
+    expect(expensePackageData.state).to.eql({ created: {} });
+    expect(expenseManagerData.expensePackageNonce).to.equal(2);
+  });
+  it("submits second expense package", async () => {
+    const {
+      user,
+      squad,
+      memberEquityRecord,
+      expenseManager,
+      expensePackage,
+      packageNonce,
+    } = sharedData;
+    await program.methods
+      .squadsSubmitExpensePackage(packageNonce)
+      .accounts({
+        expensePackage,
+        expenseManager,
+        squad,
+        memberEquity: memberEquityRecord,
+        owner: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
+
+    expect(expensePackageData.state).to.eql({ pending: {} });
+  });
+  it("denies second expense package", async () => {
+    const {
+      user,
+      expensePackage,
+      expenseManager,
+      packageNonce,
+      accessRecord,
+      squad,
+      memberEquityRecord,
+    } = sharedData;
+    await program.methods
+      .squadsDenyExpensePackage(packageNonce)
+      .accounts({
+        expensePackage,
+        expenseManager,
+        accessRecord,
+        memberEquity: memberEquityRecord,
+        squad,
+        authority: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
+
+    expect(expensePackageData.state).to.eql({ denied: {} });
+  });
   it("withdraws from expense manager", async () => {
     const { user, squad, squadSol, squadMint, expenseManager } = sharedData;
     // creates a free text proposal
