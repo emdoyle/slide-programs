@@ -11,7 +11,6 @@ pub struct InitializeUser<'info> {
     pub system_program: Program<'info, System>,
 }
 
-// TODO: should this do a membership check?
 #[derive(Accounts)]
 #[instruction(name: String)]
 pub struct CreateExpenseManager<'info> {
@@ -23,11 +22,11 @@ pub struct CreateExpenseManager<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(expense_manager_address: Pubkey, nonce: u32)]
+#[instruction(nonce: u32)]
 pub struct WithdrawFromExpensePackage<'info> {
     #[account(
         mut,
-        seeds = [b"expense-package", expense_manager_address.as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
+        seeds = [b"expense-package", expense_package.expense_manager.as_ref(), expense_package.owner.as_ref(), &nonce.to_le_bytes()],
         bump = expense_package.bump,
         constraint = expense_package.state == ExpensePackageState::Approved @ SlideError::PackageNotApproved
     )]

@@ -1,11 +1,6 @@
 import { Slide } from "../target/types/slide";
 import { BN, Program } from "@project-serum/anchor";
-import {
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  Transaction,
-} from "@solana/web3.js";
+import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import {
   airdropToAccount,
   getAccessRecordAddressAndBump,
@@ -191,7 +186,7 @@ describe("slide Squads integration tests", () => {
       managerName
     );
     await program.methods
-      .squadsInitializeExpenseManager(managerName)
+      .squadsInitializeExpenseManager()
       .accounts({
         expenseManager,
         memberEquity: memberEquityRecord,
@@ -223,7 +218,12 @@ describe("slide Squads integration tests", () => {
       program.programId
     );
     await program.methods
-      .squadsCreateExpensePackage(0, managerName)
+      .squadsCreateExpensePackage(
+        0,
+        packageName,
+        packageDescription,
+        packageQuantity
+      )
       .accounts({
         expensePackage: expensePackagePDA,
         expenseManager,
@@ -260,7 +260,6 @@ describe("slide Squads integration tests", () => {
     await program.methods
       .squadsUpdateExpensePackage(
         packageNonce,
-        managerName,
         packageName,
         packageDescription,
         packageQuantity
@@ -295,7 +294,7 @@ describe("slide Squads integration tests", () => {
       packageNonce,
     } = sharedData;
     await program.methods
-      .squadsSubmitExpensePackage(managerName, packageNonce)
+      .squadsSubmitExpensePackage(packageNonce)
       .accounts({
         expensePackage,
         expenseManager,
@@ -353,6 +352,11 @@ describe("slide Squads integration tests", () => {
 
     expect(accessRecordData.role).to.eql({ reviewer: {} });
   });
+  it("approves expense package", async () => {});
+  it("withdraws from expense package", async () => {});
+  it("creates second expense package", async () => {});
+  it("submits second expense package", async () => {});
+  it("denies second expense package", async () => {});
   it("withdraws from expense manager", async () => {
     const { user, squad, squadSol, squadMint, expenseManager } = sharedData;
     // creates a free text proposal

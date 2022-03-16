@@ -4,9 +4,12 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, TokenAccount};
 
 #[derive(Accounts)]
-#[instruction(name: String)]
 pub struct SquadsInitializeExpenseManager<'info> {
-    #[account(mut, seeds = [b"expense-manager", name.as_bytes()], bump = expense_manager.bump)]
+    #[account(
+        mut,
+        seeds = [b"expense-manager", expense_manager.name.as_bytes()],
+        bump = expense_manager.bump
+    )]
     pub expense_manager: Account<'info, ExpenseManager>,
     #[account(
         seeds = [member.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
@@ -27,7 +30,7 @@ pub struct SquadsInitializeExpenseManager<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(nonce: u32, manager_name: String)]
+#[instruction(nonce: u32, name: String, description: String, quantity: u64)]
 pub struct SquadsCreateExpensePackage<'info> {
     #[account(
         init,
@@ -39,7 +42,7 @@ pub struct SquadsCreateExpensePackage<'info> {
     pub expense_package: Account<'info, ExpensePackage>,
     #[account(
         mut,
-        seeds = [b"expense-manager", manager_name.as_bytes()],
+        seeds = [b"expense-manager", expense_manager.name.as_bytes()],
         bump = expense_manager.bump,
         constraint = nonce == expense_manager.expense_package_nonce @ SlideError::IncorrectNonce,
         constraint = Some(squad.key()) == expense_manager.squad @ SlideError::SquadMismatch
@@ -65,16 +68,18 @@ pub struct SquadsCreateExpensePackage<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(nonce: u32, manager_name: String, name: String, description: String, quantity: u64)]
+#[instruction(nonce: u32, name: String, description: String, quantity: u64)]
 pub struct SquadsUpdateExpensePackage<'info> {
     #[account(
         mut,
-        seeds = [b"expense-package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
-        bump = expense_package.bump
+        seeds = [b"expense-package", expense_package.expense_manager.as_ref(), expense_package.owner.as_ref(), &nonce.to_le_bytes()],
+        bump = expense_package.bump,
+        has_one = owner,
+        has_one = expense_manager
     )]
     pub expense_package: Account<'info, ExpensePackage>,
     #[account(
-        seeds = [b"expense-manager", manager_name.as_bytes()],
+        seeds = [b"expense-manager", expense_manager.name.as_bytes()],
         bump = expense_manager.bump,
         constraint = Some(squad.key()) == expense_manager.squad @ SlideError::SquadMismatch
     )]
@@ -98,18 +103,20 @@ pub struct SquadsUpdateExpensePackage<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(manager_name: String, nonce: u32)]
+#[instruction(nonce: u32)]
 pub struct SquadsSubmitExpensePackage<'info> {
     #[account(
         mut,
-        seeds = [b"expense-package", expense_manager.key().as_ref(), owner.key().as_ref(), &nonce.to_le_bytes()],
+        seeds = [b"expense-package", expense_package.expense_manager.as_ref(), expense_package.owner.as_ref(), &nonce.to_le_bytes()],
         bump = expense_package.bump,
         constraint = expense_package.state == ExpensePackageState::Created @ SlideError::PackageFrozen,
         constraint = expense_package.quantity > 0 && !expense_package.name.is_empty() @ SlideError::PackageMissingInfo,
+        has_one = owner,
+        has_one = expense_manager
     )]
     pub expense_package: Account<'info, ExpensePackage>,
     #[account(
-        seeds = [b"expense-manager", manager_name.as_bytes()],
+        seeds = [b"expense-manager", expense_manager.name.as_bytes()],
         bump = expense_manager.bump,
         constraint = Some(squad.key()) == expense_manager.squad @ SlideError::SquadMismatch
     )]
@@ -132,6 +139,7 @@ pub struct SquadsSubmitExpensePackage<'info> {
     pub owner: Signer<'info>,
 }
 
+// TODO: member needs to be checked against the content of the proposal
 #[derive(Accounts)]
 pub struct SquadsExecuteAccessProposal<'info> {
     #[account(
@@ -215,27 +223,86 @@ pub struct SquadsExecuteWithdrawalProposal<'info> {
     pub signer: Signer<'info>,
 }
 
-//
-// #[derive(Accounts)]
-// #[instruction(owner_pubkey: Pubkey, nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]
-// pub struct SquadsApproveExpensePackage<'info> {
-//     #[account(mut, seeds = [b"expense_package", expense_manager.key().as_ref(), owner_pubkey.as_ref(), &[nonce]], bump = package_bump)]
-//     pub expense_package: Account<'info, ExpensePackage>,
-//     #[account(mut, seeds = [b"expense_manager", manager_name.as_bytes()], bump = manager_bump, has_one = authority)]
-//     pub expense_manager: Account<'info, ExpenseManager>,
-//     pub authority: Signer<'info>,
-// }
-//
-// #[derive(Accounts)]
-// #[instruction(owner_pubkey: Pubkey, nonce: u8, manager_name: String, manager_bump: u8, package_bump: u8)]
-// pub struct SquadsDenyExpensePackage<'info> {
-//     #[account(mut, seeds = [b"expense_package", expense_manager.key().as_ref(), owner_pubkey.as_ref(), &[nonce]], bump = package_bump)]
-//     pub expense_package: Account<'info, ExpensePackage>,
-//     #[account(mut, seeds = [b"expense_manager", manager_name.as_bytes()], bump = manager_bump, has_one = authority)]
-//     pub expense_manager: Account<'info, ExpenseManager>,
-//     pub authority: Signer<'info>,
-// }
-//
+#[derive(Accounts)]
+#[instruction(nonce: u32)]
+pub struct SquadsApproveExpensePackage<'info> {
+    #[account(
+        mut,
+        seeds = [b"expense-package", expense_package.expense_manager.as_ref(), expense_package.owner.as_ref(), &nonce.to_le_bytes()],
+        bump = expense_package.bump
+    )]
+    pub expense_package: Account<'info, ExpensePackage>,
+    #[account(
+        mut,
+        seeds = [b"expense-manager", expense_manager.name.as_bytes()],
+        bump = expense_manager.bump,
+        constraint = Some(squad.key()) == expense_manager.squad @ SlideError::SquadMismatch
+    )]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(
+        seeds = [b"access-record", expense_manager.key().as_ref(), authority.key().as_ref()],
+        bump = access_record.bump,
+        constraint = access_record.role.can_approve_and_deny() @ SlideError::UserCannotApproveOrDenyExpenses
+    )]
+    pub access_record: Account<'info, AccessRecord>,
+    #[account(
+        seeds = [authority.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID,
+        constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
+        constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
+    )]
+    pub member_equity: Account<'info, TokenAccount>,
+    #[account(
+        seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID
+    )]
+    pub squad: Box<Account<'info, Squad>>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(nonce: u32)]
+pub struct SquadsDenyExpensePackage<'info> {
+    #[account(
+        mut,
+        seeds = [b"expense-package", expense_package.expense_manager.as_ref(), expense_package.owner.as_ref(), &nonce.to_le_bytes()],
+        bump = expense_package.bump
+    )]
+    pub expense_package: Account<'info, ExpensePackage>,
+    #[account(
+        mut,
+        seeds = [b"expense-manager", expense_manager.name.as_bytes()],
+        bump = expense_manager.bump,
+        constraint = Some(squad.key()) == expense_manager.squad @ SlideError::SquadMismatch
+    )]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(
+        seeds = [b"access-record", expense_manager.key().as_ref(), authority.key().as_ref()],
+        bump = access_record.bump,
+        constraint = access_record.role.can_approve_and_deny() @ SlideError::UserCannotApproveOrDenyExpenses
+    )]
+    pub access_record: Account<'info, AccessRecord>,
+    #[account(
+        seeds = [authority.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID,
+        constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
+        constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
+    )]
+    pub member_equity: Account<'info, TokenAccount>,
+    #[account(
+        seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
+        bump,
+        seeds::program = SQUADS_PROGRAM_ID
+    )]
+    pub squad: Box<Account<'info, Squad>>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
+}
+
 // #[derive(Accounts)]
 // #[instruction()]
 // pub struct SquadsCreateAccessProposal<'info> {}

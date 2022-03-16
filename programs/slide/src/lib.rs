@@ -48,7 +48,6 @@ pub mod slide {
     }
     pub fn spl_gov_initialize_expense_manager(
         ctx: Context<SPLGovInitializeExpenseManager>,
-        _name: String,
         realm: Pubkey,
         governance_authority: Pubkey,
     ) -> Result<()> {
@@ -60,7 +59,6 @@ pub mod slide {
     }
     pub fn spl_gov_create_access_record(
         ctx: Context<SPLGovCreateAccessRecord>,
-        _manager_name: String,
         _realm: Pubkey,
         _user: Pubkey,
         role: Role,
@@ -73,14 +71,22 @@ pub mod slide {
     }
     pub fn spl_gov_create_expense_package(
         ctx: Context<SPLGovCreateExpensePackage>,
-        _manager_name: String,
         _realm: Pubkey,
-        _nonce: u32, // assuming constraint has already verified nonce value
+        _nonce: u32, // assuming constraint has already verified nonce value,
+        name: String,
+        description: String,
+        quantity: u64,
     ) -> Result<()> {
+        let owner = &ctx.accounts.owner;
         let expense_manager = &mut ctx.accounts.expense_manager;
         let expense_package = &mut ctx.accounts.expense_package;
 
         expense_package.bump = *ctx.bumps.get("expense_package").unwrap();
+        expense_package.expense_manager = expense_manager.key();
+        expense_package.owner = owner.key();
+        expense_package.name = name;
+        expense_package.description = description;
+        expense_package.quantity = quantity;
 
         expense_manager.expense_package_nonce = expense_manager
             .expense_package_nonce
@@ -91,16 +97,15 @@ pub mod slide {
     }
     pub fn spl_gov_update_expense_package(
         ctx: Context<SPLGovUpdateExpensePackage>,
-        _manager_name: String,
         _realm: Pubkey,
-        package_name: String,
+        _nonce: u32,
+        name: String,
         description: String,
         quantity: u64,
-        _nonce: u32,
     ) -> Result<()> {
         let expense_package = &mut ctx.accounts.expense_package;
 
-        expense_package.name = package_name;
+        expense_package.name = name;
         expense_package.description = description;
         expense_package.quantity = quantity;
 
@@ -108,7 +113,6 @@ pub mod slide {
     }
     pub fn spl_gov_submit_expense_package(
         ctx: Context<SPLGovSubmitExpensePackage>,
-        _manager_name: String,
         _realm: Pubkey,
         _nonce: u32,
     ) -> Result<()> {
@@ -121,29 +125,27 @@ pub mod slide {
     }
     pub fn spl_gov_approve_expense_package(
         ctx: Context<SPLGovApproveExpensePackage>,
-        _manager_name: String,
         _realm: Pubkey,
-        _owner_pubkey: Pubkey,
         _nonce: u32,
     ) -> Result<()> {
         let expense_package = &mut ctx.accounts.expense_package;
         let expense_manager = &mut ctx.accounts.expense_manager;
 
         expense_package.state = ExpensePackageState::Approved;
+
         let package_info = expense_package.to_account_info();
         let mut package_balance = package_info.try_borrow_mut_lamports()?;
         let manager_info = expense_manager.to_account_info();
         let mut manager_balance = manager_info.try_borrow_mut_lamports()?;
+
         **package_balance += expense_package.quantity;
         **manager_balance -= expense_package.quantity;
 
         Ok(())
     }
     pub fn spl_gov_deny_expense_package(
-        ctx: Context<SPLGovApproveExpensePackage>,
-        _manager_name: String,
+        ctx: Context<SPLGovDenyExpensePackage>,
         _realm: Pubkey,
-        _owner_pubkey: Pubkey,
         _nonce: u32,
     ) -> Result<()> {
         let expense_package = &mut ctx.accounts.expense_package;
@@ -154,7 +156,6 @@ pub mod slide {
     }
     pub fn withdraw_from_expense_package(
         ctx: Context<WithdrawFromExpensePackage>,
-        _expense_manager_address: Pubkey,
         _nonce: u32,
     ) -> Result<()> {
         let expense_package = &mut ctx.accounts.expense_package;
@@ -173,7 +174,6 @@ pub mod slide {
     }
     pub fn squads_initialize_expense_manager(
         ctx: Context<SquadsInitializeExpenseManager>,
-        _name: String,
     ) -> Result<()> {
         let expense_manager = &mut ctx.accounts.expense_manager;
         let squad = &ctx.accounts.squad;
@@ -185,12 +185,20 @@ pub mod slide {
     pub fn squads_create_expense_package(
         ctx: Context<SquadsCreateExpensePackage>,
         _nonce: u32,
-        _manager_name: String,
+        name: String,
+        description: String,
+        quantity: u64,
     ) -> Result<()> {
+        let owner = &ctx.accounts.owner;
         let expense_package = &mut ctx.accounts.expense_package;
         let expense_manager = &mut ctx.accounts.expense_manager;
 
         expense_package.bump = *ctx.bumps.get("expense_package").unwrap();
+        expense_package.expense_manager = expense_manager.key();
+        expense_package.owner = owner.key();
+        expense_package.name = name;
+        expense_package.description = description;
+        expense_package.quantity = quantity;
 
         expense_manager.expense_package_nonce = expense_manager
             .expense_package_nonce
@@ -202,7 +210,6 @@ pub mod slide {
     pub fn squads_update_expense_package(
         ctx: Context<SquadsUpdateExpensePackage>,
         _nonce: u32,
-        _manager_name: String,
         name: String,
         description: String,
         quantity: u64,
@@ -217,7 +224,6 @@ pub mod slide {
     }
     pub fn squads_submit_expense_package(
         ctx: Context<SquadsSubmitExpensePackage>,
-        _manager_name: String,
         _nonce: u32,
     ) -> Result<()> {
         let expense_package = &mut ctx.accounts.expense_package;
@@ -357,6 +363,35 @@ pub mod slide {
 
         **manager_balance -= withdrawal_amount;
         **squad_treasury_balance += withdrawal_amount;
+
+        Ok(())
+    }
+    pub fn squads_approve_expense_package(
+        ctx: Context<SquadsApproveExpensePackage>,
+        _nonce: u32,
+    ) -> Result<()> {
+        let expense_package = &mut ctx.accounts.expense_package;
+        let expense_manager = &mut ctx.accounts.expense_manager;
+
+        expense_package.state = ExpensePackageState::Approved;
+
+        let package_info = expense_package.to_account_info();
+        let mut package_balance = package_info.try_borrow_mut_lamports()?;
+        let manager_info = expense_manager.to_account_info();
+        let mut manager_balance = manager_info.try_borrow_mut_lamports()?;
+
+        **package_balance += expense_package.quantity;
+        **manager_balance -= expense_package.quantity;
+
+        Ok(())
+    }
+    pub fn squads_deny_expense_package(
+        ctx: Context<SquadsApproveExpensePackage>,
+        _nonce: u32,
+    ) -> Result<()> {
+        let expense_package = &mut ctx.accounts.expense_package;
+
+        expense_package.state = ExpensePackageState::Denied;
 
         Ok(())
     }

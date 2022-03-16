@@ -192,7 +192,6 @@ describe.skip("slide SPL Governance integration tests", () => {
       user,
       realmName
     );
-    // not testing SPL Gov SDK here, assuming accounts are well-formed
 
     sharedData.realm = realm;
     sharedData.membershipTokenMint = membershipTokenMint;
@@ -201,7 +200,6 @@ describe.skip("slide SPL Governance integration tests", () => {
   });
   it("creates and initializes an expense manager", async () => {
     const { user, realm, membershipTokenMint, tokenOwnerRecord } = sharedData;
-    // TODO: do creation and initialization need to happen in the same transaction?
     const { expenseManagerPDA } = await createExpenseManager(
       program,
       membershipTokenMint,
@@ -216,7 +214,7 @@ describe.skip("slide SPL Governance integration tests", () => {
       expenseManagerPDA
     );
     await program.methods
-      .splGovInitializeExpenseManager(managerName, realm, governance)
+      .splGovInitializeExpenseManager(realm, governance)
       .accounts({
         expenseManager: expenseManagerPDA,
         governanceAuthority: governance,
@@ -245,7 +243,13 @@ describe.skip("slide SPL Governance integration tests", () => {
       program.programId
     );
     await program.methods
-      .splGovCreateExpensePackage(managerName, realm, 0)
+      .splGovCreateExpensePackage(
+        realm,
+        0,
+        packageName,
+        packageDescription,
+        packageQuantity
+      )
       .accounts({
         expensePackage: expensePackagePDA,
         expenseManager,
@@ -280,12 +284,11 @@ describe.skip("slide SPL Governance integration tests", () => {
     } = sharedData;
     await program.methods
       .splGovUpdateExpensePackage(
-        managerName,
         realm,
+        packageNonce,
         packageName,
         packageDescription,
-        packageQuantity,
-        packageNonce
+        packageQuantity
       )
       .accounts({
         expensePackage,
@@ -316,7 +319,7 @@ describe.skip("slide SPL Governance integration tests", () => {
       packageNonce,
     } = sharedData;
     await program.methods
-      .splGovSubmitExpensePackage(managerName, realm, packageNonce)
+      .splGovSubmitExpensePackage(realm, packageNonce)
       .accounts({
         expensePackage,
         expenseManager,
@@ -349,7 +352,7 @@ describe.skip("slide SPL Governance integration tests", () => {
       user.publicKey
     );
     const instruction: TransactionInstruction = await program.methods
-      .splGovCreateAccessRecord(managerName, realm, user.publicKey, {
+      .splGovCreateAccessRecord(realm, user.publicKey, {
         reviewer: {},
       })
       .accounts({
@@ -449,7 +452,7 @@ describe.skip("slide SPL Governance integration tests", () => {
     );
 
     // need to wait for unix timestamp on cluster to advance before executing
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     addAccountAsSigner(instructions[0], user.publicKey);
     await flushInstructions(program, instructions, [user]);

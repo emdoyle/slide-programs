@@ -1,10 +1,5 @@
 use anchor_lang::prelude::*;
 
-// TODO: might need to think about how to make this searchable
-//  given a user pubkey, how can I tell what ExpenseManagers to show them?
-//  can check their token mints but that's not efficient
-//  maybe separate struct to track user <> manager membership
-
 #[account]
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct ExpenseManager {
@@ -28,12 +23,12 @@ impl ExpenseManager {
     pub const MAX_SIZE: usize = 1 + 64 + 32 + 4 + 33 + 33 + 33;
 }
 
-// TODO: might need to bring back owner, expense manager pubkeys to make it searchable
-
 #[account]
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct ExpensePackage {
     pub bump: u8,
+    pub owner: Pubkey,
+    pub expense_manager: Pubkey,
     pub name: String,
     pub description: String,
     pub state: ExpensePackageState,
@@ -42,11 +37,13 @@ pub struct ExpensePackage {
 
 impl ExpensePackage {
     // bump: 1
+    // owner: 32
+    // expense_manager: 32
     // name: 64
     // description: 256
     // state: 1
     // quantity: 8
-    pub const MAX_SIZE: usize = 1 + 64 + 256 + 1 + 8;
+    pub const MAX_SIZE: usize = 1 + 32 + 32 + 64 + 256 + 1 + 8;
 }
 
 #[derive(Debug, AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
