@@ -352,7 +352,35 @@ describe("slide Squads integration tests", () => {
 
     expect(accessRecordData.role).to.eql({ reviewer: {} });
   });
-  it("approves expense package", async () => {});
+  it("approves expense package", async () => {
+    const {
+      user,
+      expensePackage,
+      expenseManager,
+      packageNonce,
+      accessRecord,
+      squad,
+      memberEquityRecord,
+    } = sharedData;
+    await program.methods
+      .squadsApproveExpensePackage(packageNonce)
+      .accounts({
+        expensePackage,
+        expenseManager,
+        accessRecord,
+        memberEquity: memberEquityRecord,
+        squad,
+        authority: user.publicKey,
+      })
+      .signers(signers(program, [user]))
+      .rpc();
+
+    const expensePackageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
+
+    expect(expensePackageData.state).to.eql({ approved: {} });
+  });
   it("withdraws from expense package", async () => {});
   it("creates second expense package", async () => {});
   it("submits second expense package", async () => {});

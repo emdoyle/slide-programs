@@ -287,6 +287,7 @@ pub mod slide {
             return err!(SlideError::InvalidProposal);
         }
 
+        access_record.bump = *ctx.bumps.get("access_record").unwrap();
         access_record.role = Role::Reviewer;
 
         Ok(())
