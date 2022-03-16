@@ -69,6 +69,30 @@ pub mod slide {
 
         Ok(())
     }
+    pub fn spl_gov_withdraw_from_expense_manager(
+        ctx: Context<SPLGovWithdrawFromExpenseManager>,
+        _realm: Pubkey,
+    ) -> Result<()> {
+        let expense_manager = &mut ctx.accounts.expense_manager;
+        let native_treasury = &mut ctx.accounts.native_treasury;
+
+        let manager_info = expense_manager.to_account_info();
+        let native_treasury_info = native_treasury.to_account_info();
+
+        let mut manager_balance = manager_info.try_borrow_mut_lamports()?;
+        let mut native_treasury_balance = native_treasury_info.try_borrow_mut_lamports()?;
+
+        // need to determine manager balance aside from rent-exemption
+        let rent = Rent::get()?;
+        let rent_exempt_lamports = rent.minimum_balance(manager_info.data_len()).max(1);
+
+        let withdrawal_amount = **manager_balance - rent_exempt_lamports;
+
+        **manager_balance -= withdrawal_amount;
+        **native_treasury_balance += withdrawal_amount;
+
+        Ok(())
+    }
     pub fn spl_gov_create_expense_package(
         ctx: Context<SPLGovCreateExpensePackage>,
         _realm: Pubkey,

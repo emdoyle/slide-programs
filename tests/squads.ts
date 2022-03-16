@@ -1,6 +1,11 @@
 import { Slide } from "../target/types/slide";
 import { BN, Program } from "@project-serum/anchor";
-import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
+import {
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  Transaction,
+} from "@solana/web3.js";
 import {
   airdropToAccount,
   getAccessRecordAddressAndBump,
@@ -146,7 +151,7 @@ type SquadsSharedData = {
   payloadKeypair?: Keypair;
 };
 
-describe("slide Squads integration tests", () => {
+describe.skip("slide Squads integration tests", () => {
   anchor.setProvider(anchor.Provider.env());
 
   const program = anchor.workspace.Slide as Program<Slide>;
@@ -505,6 +510,7 @@ describe("slide Squads integration tests", () => {
   });
   it("withdraws from expense manager", async () => {
     const { user, squad, squadSol, squadMint, expenseManager } = sharedData;
+
     // creates a free text proposal
     const { proposal } = await createWithdrawalProposal(
       program,
@@ -515,6 +521,9 @@ describe("slide Squads integration tests", () => {
 
     // casts a vote on the proposal
     await castVoteOnProposal(program, user, squad, proposal, 0);
+
+    const treasuryBalancePre = await getBalance(program, squadSol);
+    const managerBalancePre = await getBalance(program, expenseManager);
 
     await program.methods
       .squadsExecuteWithdrawalProposal()
@@ -528,5 +537,16 @@ describe("slide Squads integration tests", () => {
       })
       .signers(signers(program, [user]))
       .rpc();
+
+    const treasuryBalancePost = await getBalance(program, squadSol);
+    const managerBalancePost = await getBalance(program, expenseManager);
+
+    // packageQuantity is subtracted because one package was approved (reimbursed from manager)
+    const expectedWithdrawal =
+      2 * LAMPORTS_PER_SOL - packageQuantity.toNumber();
+    expect(managerBalancePre - managerBalancePost).to.equal(expectedWithdrawal);
+    expect(treasuryBalancePost - treasuryBalancePre).to.equal(
+      expectedWithdrawal
+    );
   });
 });

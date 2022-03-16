@@ -29,8 +29,10 @@ import {
 } from "@solana/spl-governance";
 import {
   addAccountAsSigner,
+  airdropToAccount,
   flushInstructions,
   getAccessRecordAddressAndBump,
+  getBalance,
   getExpensePackageAddressAndBump,
   getFundedAccount,
   setWritable,
@@ -152,10 +154,6 @@ async function createExpenseGovernance(
   txn.add(...instructions);
   await program.provider.send(txn, signers(program, [user]));
 
-  await program.provider.connection.requestAirdrop(
-    nativeTreasury,
-    2 * LAMPORTS_PER_SOL
-  );
   return { governance, nativeTreasury };
 }
 
@@ -172,7 +170,7 @@ type SPLGovSharedData = {
   packageNonce?: number;
 };
 
-describe.skip("slide SPL Governance integration tests", () => {
+describe("slide SPL Governance integration tests", () => {
   anchor.setProvider(anchor.Provider.env());
 
   const program = anchor.workspace.Slide as Program<Slide>;
@@ -206,6 +204,7 @@ describe.skip("slide SPL Governance integration tests", () => {
       user,
       managerName
     );
+    await airdropToAccount(program, expenseManagerPDA);
     const { governance, nativeTreasury } = await createExpenseGovernance(
       program,
       user,
@@ -213,6 +212,7 @@ describe.skip("slide SPL Governance integration tests", () => {
       tokenOwnerRecord,
       expenseManagerPDA
     );
+    await airdropToAccount(program, nativeTreasury);
     await program.methods
       .splGovInitializeExpenseManager(realm, governance)
       .accounts({
@@ -463,5 +463,137 @@ describe.skip("slide SPL Governance integration tests", () => {
     );
 
     expect(accessRecordData.role).to.eql({ reviewer: {} });
+  });
+  it("approves expense package", async () => {});
+  it("withdraws from expense package", async () => {});
+  it("creates second expense package", async () => {});
+  it("submits second expense package", async () => {});
+  it("denies expense package", async () => {});
+  it("withdraws from expense manager", async () => {
+    // generate instructions for withdrawal
+    const {
+      user,
+      expenseManager,
+      realm,
+      tokenOwnerRecord,
+      membershipTokenMint,
+      governance,
+      nativeTreasury,
+    } = sharedData;
+    const instruction: TransactionInstruction = await program.methods
+      .splGovWithdrawFromExpenseManager(realm)
+      .accounts({
+        expenseManager,
+        governanceAuthority: governance,
+        nativeTreasury,
+      })
+      .instruction();
+    const instructionData = new InstructionData({
+      programId: program.programId,
+      accounts: instruction.keys.map((key) => new AccountMetaData({ ...key })),
+      data: instruction.data,
+    });
+    // create a proposal containing those instructions
+    let instructions = [];
+    const proposal = await withCreateProposal(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      2,
+      realm,
+      governance,
+      tokenOwnerRecord,
+      proposalName,
+      proposalDescriptionLink,
+      membershipTokenMint,
+      user.publicKey,
+      1,
+      new VoteType({ type: 0, choiceCount: 1 }),
+      ["Withdraw"],
+      true,
+      user.publicKey
+    );
+    const proposalTransaction = await withInsertTransaction(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      2,
+      governance,
+      proposal,
+      tokenOwnerRecord,
+      user.publicKey,
+      0,
+      0,
+      0,
+      [instructionData],
+      user.publicKey
+    );
+    // initiate voting on the proposal
+    await withSignOffProposal(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      2,
+      realm,
+      governance,
+      proposal,
+      user.publicKey,
+      undefined,
+      tokenOwnerRecord
+    );
+
+    await flushInstructions(program, instructions, [user]);
+    instructions = [];
+
+    // cast a vote for the proposal (finalizing is unnecessary due to vote tipping)
+    await withCastVote(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      2,
+      realm,
+      governance,
+      proposal,
+      tokenOwnerRecord,
+      tokenOwnerRecord,
+      user.publicKey,
+      membershipTokenMint,
+      new Vote({
+        voteType: 0,
+        approveChoices: [new VoteChoice({ rank: 0, weightPercentage: 100 })],
+        deny: false,
+      }),
+      user.publicKey
+    );
+
+    setWritable(instructions, user.publicKey);
+    await flushInstructions(program, instructions, [user]);
+    instructions = [];
+
+    // execute the transaction
+    await withExecuteTransaction(
+      instructions,
+      SPL_GOV_PROGRAM_ID,
+      2,
+      governance,
+      proposal,
+      proposalTransaction,
+      [instructionData]
+    );
+
+    // need to wait for unix timestamp on cluster to advance before executing
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const managerBalancePre = await getBalance(program, expenseManager);
+    const treasuryBalancePre = await getBalance(program, nativeTreasury);
+
+    addAccountAsSigner(instructions[0], user.publicKey);
+    await flushInstructions(program, instructions, [user]);
+
+    const managerBalancePost = await getBalance(program, expenseManager);
+    const treasuryBalancePost = await getBalance(program, nativeTreasury);
+
+    expect(managerBalancePre - managerBalancePost).to.equal(
+      2 * LAMPORTS_PER_SOL
+    );
+    expect(treasuryBalancePost - treasuryBalancePre).to.equal(
+      2 * LAMPORTS_PER_SOL
+    );
   });
 });

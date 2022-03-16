@@ -37,7 +37,8 @@ pub struct SPLGovCreateAccessRecord<'info> {
     pub access_record: Account<'info, AccessRecord>,
     #[account(
         seeds = [b"expense-manager", expense_manager.name.as_bytes()],
-        bump = expense_manager.bump
+        bump = expense_manager.bump,
+        constraint = Some(realm) == expense_manager.realm @ SlideError::SPLGovRealmMismatch
     )]
     pub expense_manager: Account<'info, ExpenseManager>,
     #[account(
@@ -55,6 +56,33 @@ pub struct SPLGovCreateAccessRecord<'info> {
     )]
     pub native_treasury: Signer<'info>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(realm: Pubkey)]
+pub struct SPLGovWithdrawFromExpenseManager<'info> {
+    #[account(
+        mut,
+        seeds = [b"expense-manager", expense_manager.name.as_bytes()],
+        bump = expense_manager.bump,
+        constraint = Some(realm) == expense_manager.realm @ SlideError::SPLGovRealmMismatch
+    )]
+    pub expense_manager: Account<'info, ExpenseManager>,
+    #[account(
+        signer,
+        seeds = [b"account-governance", realm.as_ref(), expense_manager.key().as_ref()],
+        bump,
+        seeds::program = SPL_GOV_PROGRAM_ID
+    )]
+    pub governance_authority: Account<'info, Governance>,
+    /// CHECK: The seeds constraint is sufficient here, and the treasury does not need to sign
+    #[account(
+        mut,
+        seeds = [b"native-treasury", governance_authority.key().as_ref()],
+        bump,
+        seeds::program = SPL_GOV_PROGRAM_ID
+    )]
+    pub native_treasury: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
