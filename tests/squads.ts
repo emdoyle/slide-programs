@@ -6,26 +6,23 @@ import {
   PublicKey,
   Transaction,
 } from "@solana/web3.js";
+import { getBalance, signers, toBN } from "@slidexyz/slide-sdk/utils";
 import {
-  airdropToAccount,
   getAccessRecordAddressAndBump,
-  getBalance,
   getExpensePackageAddressAndBump,
-  getFundedAccount,
-  signers,
-  SQUADS_PROGRAM_ID,
-  toBN,
-} from "./utils";
+} from "@slidexyz/slide-sdk/address";
 import * as anchor from "@project-serum/anchor";
 import { createExpenseManager } from "./program_rpc";
 import { assert, expect } from "chai";
 import {
+  SQUADS_PROGRAM_ID,
   withAddMembersToSquad,
   withCreateSquad,
   withCreateProposalAccount,
   getMemberEquityAddressAndBump,
   withCastVote,
-} from "./squads_sdk";
+} from "@slidexyz/squads-sdk";
+import { airdropToAccount, getFundedAccount } from "./utils";
 
 async function setupSquad(
   program: Program<Slide>,

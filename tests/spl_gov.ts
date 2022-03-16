@@ -27,19 +27,20 @@ import {
   VoteChoice,
   withSignOffProposal,
 } from "@solana/spl-governance";
+import { airdropToAccount, getFundedAccount } from "./utils";
+import { SPL_GOV_PROGRAM_ID } from "@slidexyz/slide-sdk/constants";
 import {
   addAccountAsSigner,
-  airdropToAccount,
   flushInstructions,
-  getAccessRecordAddressAndBump,
   getBalance,
-  getExpensePackageAddressAndBump,
-  getFundedAccount,
   setWritable,
   signers,
-  SPL_GOV_PROGRAM_ID,
   toBN,
-} from "./utils";
+} from "@slidexyz/slide-sdk/utils";
+import {
+  getAccessRecordAddressAndBump,
+  getExpensePackageAddressAndBump,
+} from "@slidexyz/slide-sdk/address";
 import { MintMaxVoteWeightSource } from "@solana/spl-governance/lib/governance/accounts";
 import * as anchor from "@project-serum/anchor";
 import { createExpenseManager } from "./program_rpc";
