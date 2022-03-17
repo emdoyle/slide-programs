@@ -152,6 +152,7 @@ describe("slide Squads integration tests", () => {
   anchor.setProvider(anchor.Provider.env());
 
   const program = anchor.workspace.Slide as Program<Slide>;
+  const connection = program.provider.connection;
   const managerName = "SQUADSINTEGRATIONTESTMANAGER";
   const packageName = "SQUADSINTEGRATIONTESTPACKAGE";
   const packageDescription = "SQUADSINTEGRATIONTESTPACKAGEDESCRIPTION";
@@ -387,8 +388,8 @@ describe("slide Squads integration tests", () => {
   it("withdraws from expense package", async () => {
     const { user, expensePackage, packageNonce } = sharedData;
 
-    const userBalancePre = await getBalance(program, user.publicKey);
-    const packageBalancePre = await getBalance(program, expensePackage);
+    const userBalancePre = await getBalance(connection, user.publicKey);
+    const packageBalancePre = await getBalance(connection, expensePackage);
 
     await program.methods
       .withdrawFromExpensePackage(packageNonce)
@@ -399,8 +400,8 @@ describe("slide Squads integration tests", () => {
       .signers(signers(program, [user]))
       .rpc();
 
-    const userBalancePost = await getBalance(program, user.publicKey);
-    const packageBalancePost = await getBalance(program, expensePackage);
+    const userBalancePost = await getBalance(connection, user.publicKey);
+    const packageBalancePost = await getBalance(connection, expensePackage);
 
     // why is a fee not being charged? no idea
     expect(userBalancePost - userBalancePre).to.equal(
@@ -519,8 +520,8 @@ describe("slide Squads integration tests", () => {
     // casts a vote on the proposal
     await castVoteOnProposal(program, user, squad, proposal, 0);
 
-    const treasuryBalancePre = await getBalance(program, squadSol);
-    const managerBalancePre = await getBalance(program, expenseManager);
+    const treasuryBalancePre = await getBalance(connection, squadSol);
+    const managerBalancePre = await getBalance(connection, expenseManager);
 
     await program.methods
       .squadsExecuteWithdrawalProposal()
@@ -535,8 +536,8 @@ describe("slide Squads integration tests", () => {
       .signers(signers(program, [user]))
       .rpc();
 
-    const treasuryBalancePost = await getBalance(program, squadSol);
-    const managerBalancePost = await getBalance(program, expenseManager);
+    const treasuryBalancePost = await getBalance(connection, squadSol);
+    const managerBalancePost = await getBalance(connection, expenseManager);
 
     // packageQuantity is subtracted because one package was approved (reimbursed from manager)
     const expectedWithdrawal =
