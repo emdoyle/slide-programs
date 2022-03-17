@@ -355,6 +355,8 @@ describe("slide Squads integration tests", () => {
     );
 
     expect(accessRecordData.role).to.eql({ reviewer: {} });
+    assert(accessRecordData.user.equals(user.publicKey));
+    assert(accessRecordData.expenseManager.equals(expenseManager));
   });
   it("approves expense package", async () => {
     const {

@@ -467,6 +467,8 @@ describe("slide SPL Governance integration tests", () => {
     sharedData.accessRecord = accessRecord;
 
     expect(accessRecordData.role).to.eql({ reviewer: {} });
+    assert(accessRecordData.user.equals(user.publicKey));
+    assert(accessRecordData.expenseManager.equals(expenseManager));
   });
   it("approves expense package", async () => {
     const {

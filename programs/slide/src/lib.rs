@@ -60,12 +60,15 @@ pub mod slide {
     pub fn spl_gov_create_access_record(
         ctx: Context<SPLGovCreateAccessRecord>,
         _realm: Pubkey,
-        _user: Pubkey,
+        user: Pubkey,
         role: Role,
     ) -> Result<()> {
+        let expense_manager = &ctx.accounts.expense_manager;
         let access_record = &mut ctx.accounts.access_record;
 
         access_record.bump = *ctx.bumps.get("access_record").unwrap();
+        access_record.user = user;
+        access_record.expense_manager = expense_manager.key();
         access_record.role = role;
 
         Ok(())
@@ -261,6 +264,8 @@ pub mod slide {
         let proposal = &ctx.accounts.proposal;
         let squad = &ctx.accounts.squad;
         let squad_mint = &ctx.accounts.squad_mint;
+        let member = &ctx.accounts.member;
+        let expense_manager = &ctx.accounts.expense_manager;
         let access_record = &mut ctx.accounts.access_record;
 
         // TODO: move vote logic, validation logic elsewhere
@@ -313,6 +318,8 @@ pub mod slide {
         }
 
         access_record.bump = *ctx.bumps.get("access_record").unwrap();
+        access_record.user = member.key();
+        access_record.expense_manager = expense_manager.key();
         access_record.role = Role::Reviewer;
 
         Ok(())
