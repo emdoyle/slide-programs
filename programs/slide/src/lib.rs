@@ -8,9 +8,9 @@ use state::*;
 use utils::*;
 
 // devnet
-// declare_id!("AgS7BpciUWV7bC7nL8KzSaNof4mvcycTUY9QQbPQ65Pt");
+declare_id!("3nunqfARwEnmSGg5b9aDEWuBVQHHHhztRAXR4bM4CYCE");
 // localnet
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+// declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 // TODO: out-of-space errors (on dynamic stuff like strings)
 //   does this need to be handled explicitly?
