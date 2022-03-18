@@ -619,7 +619,7 @@ describe("slide SPL Governance integration tests", () => {
 
     expect(expensePackageData.state).to.eql({ denied: {} });
   });
-  it.skip("withdraws from expense manager", async () => {
+  it("withdraws from expense manager", async () => {
     // generate instructions for withdrawal
     const {
       user,

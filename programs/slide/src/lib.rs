@@ -8,9 +8,9 @@ use state::*;
 use utils::*;
 
 // devnet
-declare_id!("3nunqfARwEnmSGg5b9aDEWuBVQHHHhztRAXR4bM4CYCE");
+// declare_id!("3nunqfARwEnmSGg5b9aDEWuBVQHHHhztRAXR4bM4CYCE");
 // localnet
-// declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 // TODO: out-of-space errors (on dynamic stuff like strings)
 //   does this need to be handled explicitly?
@@ -115,6 +115,7 @@ pub mod slide {
         expense_package.name = name;
         expense_package.description = description;
         expense_package.quantity = quantity;
+        expense_package.nonce = expense_manager.expense_package_nonce;
 
         expense_manager.expense_package_nonce = expense_manager
             .expense_package_nonce
@@ -227,6 +228,7 @@ pub mod slide {
         expense_package.name = name;
         expense_package.description = description;
         expense_package.quantity = quantity;
+        expense_package.nonce = expense_manager.expense_package_nonce;
 
         expense_manager.expense_package_nonce = expense_manager
             .expense_package_nonce

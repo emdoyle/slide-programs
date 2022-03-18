@@ -33,6 +33,7 @@ pub struct ExpensePackage {
     pub description: String,
     pub state: ExpensePackageState,
     pub quantity: u64,
+    pub nonce: u32,
 }
 
 impl ExpensePackage {
@@ -43,7 +44,8 @@ impl ExpensePackage {
     // description: 256
     // state: 1
     // quantity: 8
-    pub const MAX_SIZE: usize = 1 + 32 + 32 + 64 + 256 + 1 + 8;
+    // nonce: 4
+    pub const MAX_SIZE: usize = 1 + 32 + 32 + 64 + 256 + 1 + 8 + 4;
 }
 
 #[derive(Debug, AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
