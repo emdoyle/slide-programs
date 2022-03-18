@@ -404,6 +404,9 @@ describe("slide Squads integration tests", () => {
 
     const userBalancePost = await getBalance(connection, user.publicKey);
     const packageBalancePost = await getBalance(connection, expensePackage);
+    const packageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
 
     // why is a fee not being charged? no idea
     expect(userBalancePost - userBalancePre).to.equal(
@@ -412,6 +415,7 @@ describe("slide Squads integration tests", () => {
     expect(packageBalancePre - packageBalancePost).to.equal(
       packageQuantity.toNumber()
     );
+    expect(packageData.state).to.eql({ paid: {} });
   });
   it("creates second expense package", async () => {
     const { user, squad, memberEquityRecord, expenseManager } = sharedData;

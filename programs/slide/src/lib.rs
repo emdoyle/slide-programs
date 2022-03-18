@@ -167,6 +167,8 @@ pub mod slide {
         let manager_info = expense_manager.to_account_info();
         let mut manager_balance = manager_info.try_borrow_mut_lamports()?;
 
+        // TODO: unsafe add/subtract (overflow)
+        //   not the only place this occurs
         **package_balance += expense_package.quantity;
         **manager_balance -= expense_package.quantity;
 
@@ -198,6 +200,8 @@ pub mod slide {
 
         **expense_package_balance -= reimbursement_amount;
         **owner_balance += reimbursement_amount;
+
+        expense_package.state = ExpensePackageState::Paid;
 
         Ok(())
     }

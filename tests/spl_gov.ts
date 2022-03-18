@@ -516,6 +516,9 @@ describe("slide SPL Governance integration tests", () => {
 
     const userBalancePost = await getBalance(connection, user.publicKey);
     const packageBalancePost = await getBalance(connection, expensePackage);
+    const packageData = await program.account.expensePackage.fetch(
+      expensePackage
+    );
 
     // why is a fee not being charged? no idea
     expect(userBalancePost - userBalancePre).to.equal(
@@ -524,6 +527,7 @@ describe("slide SPL Governance integration tests", () => {
     expect(packageBalancePre - packageBalancePost).to.equal(
       packageQuantity.toNumber()
     );
+    expect(packageData.state).to.eql({ paid: {} });
   });
   it("creates second expense package", async () => {
     const { user, realm, tokenOwnerRecord, expenseManager } = sharedData;

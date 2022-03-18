@@ -21,6 +21,8 @@ pub struct CreateExpenseManager<'info> {
     pub system_program: Program<'info, System>,
 }
 
+// TODO: there should be an instruction to fully close the account to get
+//   rent back
 #[derive(Accounts)]
 #[instruction(nonce: u32)]
 pub struct WithdrawFromExpensePackage<'info> {
