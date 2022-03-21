@@ -26,6 +26,7 @@ import {
   AccountMetaData,
   VoteChoice,
   withSignOffProposal,
+  withCreateTokenGovernance,
 } from "@solana/spl-governance";
 import { airdropToAccount, getFundedAccount } from "./utils";
 import { SPL_GOV_PROGRAM_ID } from "@slidexyz/slide-sdk/constants";
@@ -122,16 +123,28 @@ async function createExpenseGovernance(
   program: Program<Slide>,
   user: Keypair,
   realm: PublicKey,
-  tokenOwnerRecord: PublicKey,
-  expenseManager: PublicKey
+  tokenOwnerRecord: PublicKey
 ) {
-  let instructions = [];
-  const governance = await withCreateGovernance(
+  const instructions = [];
+  const sentinelTokenMint = await createMint(
+    program.provider.connection,
+    user,
+    user.publicKey,
+    null,
+    9
+  );
+  const userTokenAccount = await createAccount(
+    program.provider.connection,
+    user,
+    sentinelTokenMint,
+    user.publicKey
+  );
+  const governance = await withCreateTokenGovernance(
     instructions,
     SPL_GOV_PROGRAM_ID,
     2,
     realm,
-    expenseManager,
+    userTokenAccount, // governed_account is arbitrary token account to match Gov UI behavior
     new GovernanceConfig({
       // TODO: don't really know what any of these values do
       voteThresholdPercentage: new VoteThresholdPercentage({ value: 1 }),
@@ -140,9 +153,11 @@ async function createExpenseGovernance(
       maxVotingTime: 100,
       minCouncilTokensToCreateProposal: toBN(0),
     }),
+    false,
+    user.publicKey,
     tokenOwnerRecord,
     user.publicKey, // payer
-    user.publicKey // createAuthority
+    user.publicKey // governanceAuthority
   );
   const nativeTreasury = await withCreateNativeTreasury(
     instructions,
@@ -211,12 +226,11 @@ describe("slide SPL Governance integration tests", () => {
       program,
       user,
       realm,
-      tokenOwnerRecord,
-      expenseManagerPDA
+      tokenOwnerRecord
     );
     await airdropToAccount(program, nativeTreasury);
     await program.methods
-      .splGovInitializeExpenseManager(realm, governance)
+      .splGovInitializeExpenseManager(realm)
       .accounts({
         expenseManager: expenseManagerPDA,
         governanceAuthority: governance,

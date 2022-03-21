@@ -3,12 +3,12 @@ use crate::utils::*;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-#[instruction(realm: Pubkey, governance_authority: Pubkey)]
+#[instruction(realm: Pubkey)]
 pub struct SPLGovInitializeExpenseManager<'info> {
     #[account(mut, seeds = [b"expense-manager", expense_manager.name.as_bytes()], bump = expense_manager.bump)]
     pub expense_manager: Account<'info, ExpenseManager>,
     #[account(
-        seeds = [b"account-governance", realm.as_ref(), expense_manager.key().as_ref()],
+        seeds = [b"token-governance", realm.as_ref(), governance_authority.governed_account.as_ref()],
         bump,
         seeds::program = SPL_GOV_PROGRAM_ID
     )]
@@ -43,7 +43,7 @@ pub struct SPLGovCreateAccessRecord<'info> {
     pub expense_manager: Account<'info, ExpenseManager>,
     #[account(
         signer,
-        seeds = [b"account-governance", realm.as_ref(), expense_manager.key().as_ref()],
+        seeds = [b"token-governance", realm.as_ref(), governance_authority.governed_account.as_ref()],
         bump,
         seeds::program = SPL_GOV_PROGRAM_ID
     )]
@@ -70,7 +70,7 @@ pub struct SPLGovWithdrawFromExpenseManager<'info> {
     pub expense_manager: Account<'info, ExpenseManager>,
     #[account(
         signer,
-        seeds = [b"account-governance", realm.as_ref(), expense_manager.key().as_ref()],
+        seeds = [b"token-governance", realm.as_ref(), governance_authority.governed_account.as_ref()],
         bump,
         seeds::program = SPL_GOV_PROGRAM_ID
     )]
