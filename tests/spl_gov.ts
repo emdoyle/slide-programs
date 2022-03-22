@@ -12,7 +12,6 @@ import {
   withCreateRealm,
   withCreateTokenOwnerRecord,
   withDepositGoverningTokens,
-  withCreateGovernance,
   GovernanceConfig,
   VoteThresholdPercentage,
   withCreateNativeTreasury,
@@ -29,7 +28,7 @@ import {
   withCreateTokenGovernance,
 } from "@solana/spl-governance";
 import { airdropToAccount, getFundedAccount } from "./utils";
-import { SPL_GOV_PROGRAM_ID } from "@slidexyz/slide-sdk/constants";
+import { SPL_GOV_PROGRAM_ID } from "@slidexyz/slide-sdk/lib/constants";
 import {
   addAccountAsSigner,
   flushInstructions,
@@ -37,11 +36,11 @@ import {
   setWritable,
   signers,
   toBN,
-} from "@slidexyz/slide-sdk/utils";
+} from "@slidexyz/slide-sdk/lib/utils";
 import {
   getAccessRecordAddressAndBump,
   getExpensePackageAddressAndBump,
-} from "@slidexyz/slide-sdk/address";
+} from "@slidexyz/slide-sdk/lib/address";
 import { MintMaxVoteWeightSource } from "@solana/spl-governance/lib/governance/accounts";
 import * as anchor from "@project-serum/anchor";
 import { createExpenseManager } from "./program_rpc";

@@ -4,8 +4,8 @@
         "@solana/spl-governance": "^0.0.29",
         "@solana/spl-token": "^0.2.0",
         "@solana/buffer-layout": "^4.0.0",
-        "@slidexyz/slide-sdk": "file:../slide-sdk/lib",
-        "@slidexyz/squads-sdk": "file:../squads-sdk/lib"
+        "@slidexyz/slide-sdk": "^0.1.3",
+        "@slidexyz/squads-sdk": "^0.2.0"
     },
     "devDependencies": {
         "@types/mocha": "^9.0.0",

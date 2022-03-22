@@ -6,16 +6,16 @@ import {
   PublicKey,
   Transaction,
 } from "@solana/web3.js";
-import { getBalance, signers, toBN } from "@slidexyz/slide-sdk/utils";
+import { getBalance, signers, toBN } from "@slidexyz/slide-sdk/lib/utils";
 import {
   getAccessRecordAddressAndBump,
   getExpensePackageAddressAndBump,
-} from "@slidexyz/slide-sdk/address";
+} from "@slidexyz/slide-sdk/lib/address";
 import * as anchor from "@project-serum/anchor";
 import { createExpenseManager } from "./program_rpc";
 import { assert, expect } from "chai";
 import {
-  SQUADS_PROGRAM_ID,
+  SQUADS_CUSTOM_DEVNET_PROGRAM_ID,
   withAddMembersToSquad,
   withCreateSquad,
   withCreateProposalAccount,
@@ -32,7 +32,7 @@ async function setupSquad(
   let instructions = [];
   const { squad, squadMint, squadSol, randomId } = await withCreateSquad(
     instructions,
-    SQUADS_PROGRAM_ID,
+    SQUADS_CUSTOM_DEVNET_PROGRAM_ID,
     user.publicKey,
     name ?? "my squad",
     "it's cool",
@@ -42,7 +42,7 @@ async function setupSquad(
   );
   await withAddMembersToSquad(
     instructions,
-    SQUADS_PROGRAM_ID,
+    SQUADS_CUSTOM_DEVNET_PROGRAM_ID,
     user.publicKey,
     squad,
     [[user.publicKey, new BN(100_000)]]
@@ -64,7 +64,7 @@ async function createReviewerAccessProposal(
   let instructions = [];
   const { proposal } = await withCreateProposalAccount(
     instructions,
-    SQUADS_PROGRAM_ID,
+    SQUADS_CUSTOM_DEVNET_PROGRAM_ID,
     user.publicKey,
     squad,
     nonce,
@@ -91,7 +91,7 @@ async function createWithdrawalProposal(
   let instructions = [];
   const { proposal } = await withCreateProposalAccount(
     instructions,
-    SQUADS_PROGRAM_ID,
+    SQUADS_CUSTOM_DEVNET_PROGRAM_ID,
     user.publicKey,
     squad,
     nonce,
@@ -119,7 +119,7 @@ async function castVoteOnProposal(
   let instructions = [];
   const { voteAccount } = await withCastVote(
     instructions,
-    SQUADS_PROGRAM_ID,
+    SQUADS_CUSTOM_DEVNET_PROGRAM_ID,
     user.publicKey,
     squad,
     proposal,
@@ -171,6 +171,7 @@ describe("slide Squads integration tests", () => {
     await airdropToAccount(program, squadSol);
 
     const [memberEquityRecord] = await getMemberEquityAddressAndBump(
+      SQUADS_CUSTOM_DEVNET_PROGRAM_ID,
       user.publicKey,
       squad
     );
