@@ -259,7 +259,10 @@ pub struct SquadsApproveExpensePackage<'info> {
         seeds::program = SQUADS_PROGRAM_ID
     )]
     pub squad: Box<Account<'info, Squad>>,
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = authority.key() != expense_package.owner @ SlideError::UserCannotApproveOrDenyOwnExpense
+    )]
     pub authority: Signer<'info>,
 }
 
@@ -299,7 +302,10 @@ pub struct SquadsDenyExpensePackage<'info> {
         seeds::program = SQUADS_PROGRAM_ID
     )]
     pub squad: Box<Account<'info, Squad>>,
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = authority.key() != expense_package.owner @ SlideError::UserCannotApproveOrDenyOwnExpense
+    )]
     pub authority: Signer<'info>,
 }
 

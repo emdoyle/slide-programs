@@ -204,7 +204,10 @@ pub struct SPLGovApproveExpensePackage<'info> {
         constraint = access_record.role.can_approve_and_deny() @ SlideError::UserCannotApproveOrDenyExpenses
     )]
     pub access_record: Account<'info, AccessRecord>,
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = authority.key() != expense_package.owner @ SlideError::UserCannotApproveOrDenyOwnExpense
+    )]
     pub authority: Signer<'info>,
 }
 
@@ -236,7 +239,10 @@ pub struct SPLGovDenyExpensePackage<'info> {
         constraint = access_record.role.can_approve_and_deny() @ SlideError::UserCannotApproveOrDenyExpenses
     )]
     pub access_record: Account<'info, AccessRecord>,
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = authority.key() != expense_package.owner @ SlideError::UserCannotApproveOrDenyOwnExpense
+    )]
     pub authority: Signer<'info>,
 }
 

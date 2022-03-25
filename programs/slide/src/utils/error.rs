@@ -6,6 +6,8 @@ pub enum SlideError {
     UserIsNotDAOMember,
     #[msg("User has insufficient permissions to approve or deny expenses")]
     UserCannotApproveOrDenyExpenses,
+    #[msg("User cannot approve or deny their own expense package")]
+    UserCannotApproveOrDenyOwnExpense,
     #[msg("Client provided incorrect nonce")]
     IncorrectNonce,
     #[msg("Realm does not match ExpenseManager")]

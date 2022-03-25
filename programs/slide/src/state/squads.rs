@@ -1,9 +1,3 @@
-// need:
-//  - Proposal
-//    create instruction needs proposal address
-//    execute instruction needs proposal address as well
-//  - Squad
-//    probably just check mint address matches token account
 use anchor_lang::prelude::*;
 use solana_program::program_pack::Pack;
 use squads_program::state::proposal::Proposal as RawProposal;

@@ -29,6 +29,7 @@ async function setupSquad(
   user: Keypair,
   name?: string
 ) {
+  const reviewer = anchor.web3.Keypair.generate();
   let instructions = [];
   const { squad, squadMint, squadSol, randomId } = await withCreateSquad(
     instructions,
@@ -45,19 +46,23 @@ async function setupSquad(
     SQUADS_CUSTOM_DEVNET_PROGRAM_ID,
     user.publicKey,
     squad,
-    [[user.publicKey, new BN(100_000)]]
+    [
+      [user.publicKey, new BN(100_000)],
+      [reviewer.publicKey, new BN(1)],
+    ]
   );
 
   const txn = new Transaction();
   txn.add(...instructions);
   await program.provider.send(txn, signers(program, [user]));
 
-  return { squad, squadMint, squadSol, randomId };
+  return { squad, squadMint, squadSol, randomId, reviewer };
 }
 
 async function createReviewerAccessProposal(
   program: Program<Slide>,
   user: Keypair,
+  reviewer: PublicKey,
   squad: PublicKey,
   nonce: number
 ) {
@@ -70,7 +75,7 @@ async function createReviewerAccessProposal(
     nonce,
     0,
     "Reviewer Access",
-    `[SLIDEPROPOSAL]: This grants reviewer-level access in Slide to public key ${user.publicKey.toString()}`,
+    `[SLIDEPROPOSAL]: This grants reviewer-level access in Slide to public key ${reviewer.toString()}`,
     2,
     ["Approve", "Deny"]
   );
@@ -135,10 +140,12 @@ async function castVoteOnProposal(
 
 type SquadsSharedData = {
   user?: Keypair;
+  reviewer?: Keypair;
   squad?: PublicKey;
   randomId?: string;
   squadMint?: PublicKey;
   memberEquityRecord?: PublicKey;
+  reviewerMemberEquityRecord?: PublicKey;
   expenseManager?: PublicKey;
   accessRecord?: PublicKey;
   expensePackage?: PublicKey;
@@ -162,7 +169,7 @@ describe("slide Squads integration tests", () => {
 
   it("sets up squad", async () => {
     const user = await getFundedAccount(program);
-    const { squad, squadMint, squadSol, randomId } = await setupSquad(
+    const { squad, squadMint, squadSol, randomId, reviewer } = await setupSquad(
       program,
       user,
       squadName
@@ -175,12 +182,19 @@ describe("slide Squads integration tests", () => {
       user.publicKey,
       squad
     );
+    const [reviewerMemberEquityRecord] = await getMemberEquityAddressAndBump(
+      SQUADS_CUSTOM_DEVNET_PROGRAM_ID,
+      reviewer.publicKey,
+      squad
+    );
     sharedData.user = user;
+    sharedData.reviewer = reviewer;
     sharedData.squad = squad;
     sharedData.randomId = randomId;
     sharedData.squadMint = squadMint;
     sharedData.squadSol = squadSol;
     sharedData.memberEquityRecord = memberEquityRecord;
+    sharedData.reviewerMemberEquityRecord = reviewerMemberEquityRecord;
   });
   it("creates and initializes an expense manager", async () => {
     const { user, squad, squadMint, memberEquityRecord } = sharedData;
@@ -317,11 +331,12 @@ describe("slide Squads integration tests", () => {
     expect(expensePackageData.state).to.eql({ pending: {} });
   });
   it("grants reviewer access", async () => {
-    const { user, squad, squadMint, expenseManager } = sharedData;
+    const { user, reviewer, squad, squadMint, expenseManager } = sharedData;
     // creates a free text proposal
     const { proposal } = await createReviewerAccessProposal(
       program,
       user,
+      reviewer.publicKey,
       squad,
       1
     );
@@ -333,7 +348,7 @@ describe("slide Squads integration tests", () => {
     const [accessRecord] = getAccessRecordAddressAndBump(
       program.programId,
       expenseManager,
-      user.publicKey
+      reviewer.publicKey
     );
     await program.methods
       .squadsExecuteAccessProposal()
@@ -343,7 +358,7 @@ describe("slide Squads integration tests", () => {
         expenseManager,
         squad,
         squadMint,
-        member: user.publicKey,
+        member: reviewer.publicKey,
         signer: user.publicKey,
       })
       .signers(signers(program, [user]))
@@ -356,18 +371,18 @@ describe("slide Squads integration tests", () => {
     );
 
     expect(accessRecordData.role).to.eql({ reviewer: {} });
-    assert(accessRecordData.user.equals(user.publicKey));
+    assert(accessRecordData.user.equals(reviewer.publicKey));
     assert(accessRecordData.expenseManager.equals(expenseManager));
   });
   it("approves expense package", async () => {
     const {
-      user,
+      reviewer,
       expensePackage,
       expenseManager,
       packageNonce,
       accessRecord,
       squad,
-      memberEquityRecord,
+      reviewerMemberEquityRecord,
     } = sharedData;
     await program.methods
       .squadsApproveExpensePackage(packageNonce)
@@ -375,11 +390,11 @@ describe("slide Squads integration tests", () => {
         expensePackage,
         expenseManager,
         accessRecord,
-        memberEquity: memberEquityRecord,
+        memberEquity: reviewerMemberEquityRecord,
         squad,
-        authority: user.publicKey,
+        authority: reviewer.publicKey,
       })
-      .signers(signers(program, [user]))
+      .signers(signers(program, [reviewer]))
       .rpc();
 
     const expensePackageData = await program.account.expensePackage.fetch(
@@ -486,13 +501,13 @@ describe("slide Squads integration tests", () => {
   });
   it("denies second expense package", async () => {
     const {
-      user,
+      reviewer,
       expensePackage,
       expenseManager,
       packageNonce,
       accessRecord,
       squad,
-      memberEquityRecord,
+      reviewerMemberEquityRecord,
     } = sharedData;
     await program.methods
       .squadsDenyExpensePackage(packageNonce)
@@ -500,11 +515,11 @@ describe("slide Squads integration tests", () => {
         expensePackage,
         expenseManager,
         accessRecord,
-        memberEquity: memberEquityRecord,
+        memberEquity: reviewerMemberEquityRecord,
         squad,
-        authority: user.publicKey,
+        authority: reviewer.publicKey,
       })
-      .signers(signers(program, [user]))
+      .signers(signers(program, [reviewer]))
       .rpc();
 
     const expensePackageData = await program.account.expensePackage.fetch(

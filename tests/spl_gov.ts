@@ -51,6 +51,7 @@ async function setupSPLGov(
   user: Keypair,
   name?: string
 ) {
+  const reviewer = anchor.web3.Keypair.generate();
   const membershipTokenMint = await createMint(
     program.provider.connection,
     user,
@@ -64,13 +65,27 @@ async function setupSPLGov(
     membershipTokenMint,
     user.publicKey
   );
+  const reviewerTokenAccount = await createAccount(
+    program.provider.connection,
+    user,
+    membershipTokenMint,
+    reviewer.publicKey
+  );
   await mintTo(
     program.provider.connection,
     user,
     membershipTokenMint,
     userTokenAccount,
     user,
-    100
+    100_000
+  );
+  await mintTo(
+    program.provider.connection,
+    user,
+    membershipTokenMint,
+    reviewerTokenAccount,
+    user,
+    1
   );
   const instructions = [];
   const realmName = name ?? "SPLGOVREALM";
@@ -94,6 +109,14 @@ async function setupSPLGov(
     membershipTokenMint,
     user.publicKey
   );
+  const reviewerTokenOwnerRecord = await withCreateTokenOwnerRecord(
+    instructions,
+    SPL_GOV_PROGRAM_ID,
+    realm,
+    reviewer.publicKey,
+    membershipTokenMint,
+    user.publicKey
+  );
   await withDepositGoverningTokens(
     instructions,
     SPL_GOV_PROGRAM_ID,
@@ -104,17 +127,32 @@ async function setupSPLGov(
     user.publicKey,
     user.publicKey,
     user.publicKey,
-    toBN(100)
+    toBN(100_000)
+  );
+  await withDepositGoverningTokens(
+    instructions,
+    SPL_GOV_PROGRAM_ID,
+    2,
+    realm,
+    reviewerTokenAccount,
+    membershipTokenMint,
+    reviewer.publicKey,
+    reviewer.publicKey,
+    user.publicKey,
+    toBN(1)
   );
   const txn = new Transaction();
   txn.add(...instructions);
-  await program.provider.send(txn, signers(program, [user]));
+  await program.provider.send(txn, signers(program, [user, reviewer]));
   return {
     realm,
     realmName,
     membershipTokenMint,
     userTokenAccount,
     tokenOwnerRecord,
+    reviewer,
+    reviewerTokenAccount,
+    reviewerTokenOwnerRecord,
   };
 }
 
@@ -174,9 +212,11 @@ async function createExpenseGovernance(
 
 type SPLGovSharedData = {
   user?: Keypair;
+  reviewer?: Keypair;
   realm?: PublicKey;
   membershipTokenMint?: PublicKey;
   tokenOwnerRecord?: PublicKey;
+  reviewerTokenOwnerRecord?: PublicKey;
   governance?: PublicKey;
   nativeTreasury?: PublicKey;
   expenseManager?: PublicKey;
@@ -201,16 +241,20 @@ describe("slide SPL Governance integration tests", () => {
 
   it("sets up realm and tokens", async () => {
     const user = await getFundedAccount(program);
-    const { realm, membershipTokenMint, tokenOwnerRecord } = await setupSPLGov(
-      program,
-      user,
-      realmName
-    );
+    const {
+      realm,
+      membershipTokenMint,
+      tokenOwnerRecord,
+      reviewer,
+      reviewerTokenOwnerRecord,
+    } = await setupSPLGov(program, user, realmName);
 
     sharedData.realm = realm;
     sharedData.membershipTokenMint = membershipTokenMint;
     sharedData.tokenOwnerRecord = tokenOwnerRecord;
     sharedData.user = user;
+    sharedData.reviewer = reviewer;
+    sharedData.reviewerTokenOwnerRecord = reviewerTokenOwnerRecord;
   });
   it("creates and initializes an expense manager", async () => {
     const { user, realm, membershipTokenMint, tokenOwnerRecord } = sharedData;
@@ -354,6 +398,8 @@ describe("slide SPL Governance integration tests", () => {
     // generate instructions for creating an access record
     const {
       user,
+      reviewer,
+      reviewerTokenOwnerRecord,
       expenseManager,
       realm,
       tokenOwnerRecord,
@@ -364,10 +410,10 @@ describe("slide SPL Governance integration tests", () => {
     const [accessRecord] = getAccessRecordAddressAndBump(
       program.programId,
       expenseManager,
-      user.publicKey
+      reviewer.publicKey
     );
     const instruction: TransactionInstruction = await program.methods
-      .splGovCreateAccessRecord(realm, user.publicKey, {
+      .splGovCreateAccessRecord(realm, reviewer.publicKey, {
         reviewer: {},
       })
       .accounts({
@@ -480,17 +526,17 @@ describe("slide SPL Governance integration tests", () => {
     sharedData.accessRecord = accessRecord;
 
     expect(accessRecordData.role).to.eql({ reviewer: {} });
-    assert(accessRecordData.user.equals(user.publicKey));
+    assert(accessRecordData.user.equals(reviewer.publicKey));
     assert(accessRecordData.expenseManager.equals(expenseManager));
   });
   it("approves expense package", async () => {
     const {
-      user,
+      reviewer,
+      reviewerTokenOwnerRecord,
       expensePackage,
       expenseManager,
       packageNonce,
       realm,
-      tokenOwnerRecord,
       accessRecord,
     } = sharedData;
 
@@ -499,11 +545,11 @@ describe("slide SPL Governance integration tests", () => {
       .accounts({
         expensePackage,
         expenseManager,
-        tokenOwnerRecord,
+        tokenOwnerRecord: reviewerTokenOwnerRecord,
         accessRecord,
-        authority: user.publicKey,
+        authority: reviewer.publicKey,
       })
-      .signers(signers(program, [user]))
+      .signers(signers(program, [reviewer]))
       .rpc();
 
     const expensePackageData = await program.account.expensePackage.fetch(
@@ -609,12 +655,12 @@ describe("slide SPL Governance integration tests", () => {
   });
   it("denies expense package", async () => {
     const {
-      user,
+      reviewer,
+      reviewerTokenOwnerRecord,
       expensePackage,
       expenseManager,
       packageNonce,
       realm,
-      tokenOwnerRecord,
       accessRecord,
     } = sharedData;
 
@@ -623,11 +669,11 @@ describe("slide SPL Governance integration tests", () => {
       .accounts({
         expensePackage,
         expenseManager,
-        tokenOwnerRecord,
+        tokenOwnerRecord: reviewerTokenOwnerRecord,
         accessRecord,
-        authority: user.publicKey,
+        authority: reviewer.publicKey,
       })
-      .signers(signers(program, [user]))
+      .signers(signers(program, [reviewer]))
       .rpc();
 
     const expensePackageData = await program.account.expensePackage.fetch(
