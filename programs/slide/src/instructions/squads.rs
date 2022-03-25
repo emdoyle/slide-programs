@@ -140,6 +140,7 @@ pub struct SquadsSubmitExpensePackage<'info> {
 }
 
 // TODO: member needs to be checked against the content of the proposal
+//   role should also come from proposal
 #[derive(Accounts)]
 pub struct SquadsExecuteAccessProposal<'info> {
     #[account(
@@ -150,6 +151,14 @@ pub struct SquadsExecuteAccessProposal<'info> {
         constraint = proposal.executed == false @ SlideError::ProposalAlreadyExecuted
     )]
     pub proposal: Box<Account<'info, Proposal>>,
+    #[account(
+        init,
+        seeds = [b"proposal-execution", expense_manager.key().as_ref(), proposal.key().as_ref()],
+        bump,
+        payer = signer,
+        space = ProposalExecution::MAX_SIZE + 8
+    )]
+    pub proposal_execution: Account<'info, ProposalExecution>,
     #[account(
         init,
         seeds = [b"access-record", expense_manager.key().as_ref(), member.key().as_ref()],
@@ -183,6 +192,8 @@ pub struct SquadsExecuteAccessProposal<'info> {
     pub signer: Signer<'info>,
 }
 
+// TODO: lamports withdrawn should be read from proposal
+//   also source and destination pubkeys should match
 #[derive(Accounts)]
 pub struct SquadsExecuteWithdrawalProposal<'info> {
     #[account(
@@ -193,6 +204,14 @@ pub struct SquadsExecuteWithdrawalProposal<'info> {
         constraint = proposal.executed == false @ SlideError::ProposalAlreadyExecuted
     )]
     pub proposal: Box<Account<'info, Proposal>>,
+    #[account(
+        init,
+        seeds = [b"proposal-execution", expense_manager.key().as_ref(), proposal.key().as_ref()],
+        bump,
+        payer = signer,
+        space = ProposalExecution::MAX_SIZE + 8
+    )]
+    pub proposal_execution: Account<'info, ProposalExecution>,
     #[account(
         mut,
         seeds = [b"expense-manager", expense_manager.name.as_bytes()],
@@ -219,6 +238,7 @@ pub struct SquadsExecuteWithdrawalProposal<'info> {
         seeds::program = SQUADS_PROGRAM_ID
     )]
     pub squad_treasury: SystemAccount<'info>,
+    pub system_program: Program<'info, System>,
     #[account(mut)]
     pub signer: Signer<'info>,
 }

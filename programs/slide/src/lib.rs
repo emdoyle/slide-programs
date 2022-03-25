@@ -8,9 +8,9 @@ use state::*;
 use utils::*;
 
 // devnet
-declare_id!("3nunqfARwEnmSGg5b9aDEWuBVQHHHhztRAXR4bM4CYCE");
+// declare_id!("3nunqfARwEnmSGg5b9aDEWuBVQHHHhztRAXR4bM4CYCE");
 // localnet
-// declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 // TODO: out-of-space errors (on dynamic stuff like strings)
 //   does this need to be handled explicitly?
@@ -90,10 +90,12 @@ pub mod slide {
         let rent = Rent::get()?;
         let rent_exempt_lamports = rent.minimum_balance(manager_info.data_len()).max(1);
 
-        let withdrawal_amount = **manager_balance - rent_exempt_lamports;
+        let withdrawal_amount = manager_balance.checked_sub(rent_exempt_lamports).unwrap();
 
-        **manager_balance -= withdrawal_amount;
-        **native_treasury_balance += withdrawal_amount;
+        **manager_balance = manager_balance.checked_sub(withdrawal_amount).unwrap();
+        **native_treasury_balance = native_treasury_balance
+            .checked_add(withdrawal_amount)
+            .unwrap();
 
         Ok(())
     }
@@ -167,10 +169,12 @@ pub mod slide {
         let manager_info = expense_manager.to_account_info();
         let mut manager_balance = manager_info.try_borrow_mut_lamports()?;
 
-        // TODO: unsafe add/subtract (overflow)
-        //   not the only place this occurs
-        **package_balance += expense_package.quantity;
-        **manager_balance -= expense_package.quantity;
+        **manager_balance = manager_balance
+            .checked_sub(expense_package.quantity)
+            .unwrap();
+        **package_balance = package_balance
+            .checked_add(expense_package.quantity)
+            .unwrap();
 
         Ok(())
     }
@@ -198,8 +202,10 @@ pub mod slide {
         let mut owner_balance = owner_info.try_borrow_mut_lamports()?;
         let reimbursement_amount = expense_package.quantity;
 
-        **expense_package_balance -= reimbursement_amount;
-        **owner_balance += reimbursement_amount;
+        **expense_package_balance = expense_package_balance
+            .checked_sub(reimbursement_amount)
+            .unwrap();
+        **owner_balance = owner_balance.checked_add(reimbursement_amount).unwrap();
 
         expense_package.state = ExpensePackageState::Paid;
 
@@ -268,6 +274,7 @@ pub mod slide {
     }
     pub fn squads_execute_access_proposal(ctx: Context<SquadsExecuteAccessProposal>) -> Result<()> {
         let proposal = &ctx.accounts.proposal;
+        let proposal_execution = &mut ctx.accounts.proposal_execution;
         let squad = &ctx.accounts.squad;
         let squad_mint = &ctx.accounts.squad_mint;
         let member = &ctx.accounts.member;
@@ -328,12 +335,17 @@ pub mod slide {
         access_record.expense_manager = expense_manager.key();
         access_record.role = Role::Reviewer;
 
+        proposal_execution.proposal = proposal.key();
+        let clock = Clock::get()?;
+        proposal_execution.executed_at = clock.unix_timestamp;
+
         Ok(())
     }
     pub fn squads_execute_withdrawal_proposal(
         ctx: Context<SquadsExecuteWithdrawalProposal>,
     ) -> Result<()> {
         let proposal = &ctx.accounts.proposal;
+        let proposal_execution = &mut ctx.accounts.proposal_execution;
         let squad = &ctx.accounts.squad;
         let squad_mint = &ctx.accounts.squad_mint;
         let squad_treasury = &ctx.accounts.squad_treasury;
@@ -398,10 +410,16 @@ pub mod slide {
         let rent = Rent::get()?;
         let rent_exempt_lamports = rent.minimum_balance(manager_info.data_len()).max(1);
 
-        let withdrawal_amount = **manager_balance - rent_exempt_lamports;
+        let withdrawal_amount = manager_balance.checked_sub(rent_exempt_lamports).unwrap();
 
-        **manager_balance -= withdrawal_amount;
-        **squad_treasury_balance += withdrawal_amount;
+        **manager_balance = manager_balance.checked_sub(withdrawal_amount).unwrap();
+        **squad_treasury_balance = squad_treasury_balance
+            .checked_add(withdrawal_amount)
+            .unwrap();
+
+        proposal_execution.proposal = proposal.key();
+        let clock = Clock::get()?;
+        proposal_execution.executed_at = clock.unix_timestamp;
 
         Ok(())
     }
@@ -419,8 +437,12 @@ pub mod slide {
         let manager_info = expense_manager.to_account_info();
         let mut manager_balance = manager_info.try_borrow_mut_lamports()?;
 
-        **package_balance += expense_package.quantity;
-        **manager_balance -= expense_package.quantity;
+        **package_balance = package_balance
+            .checked_add(expense_package.quantity)
+            .unwrap();
+        **manager_balance = manager_balance
+            .checked_sub(expense_package.quantity)
+            .unwrap();
 
         Ok(())
     }
