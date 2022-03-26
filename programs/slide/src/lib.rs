@@ -8,9 +8,9 @@ use state::*;
 use utils::*;
 
 // devnet
-// declare_id!("3nunqfARwEnmSGg5b9aDEWuBVQHHHhztRAXR4bM4CYCE");
+declare_id!("3nunqfARwEnmSGg5b9aDEWuBVQHHHhztRAXR4bM4CYCE");
 // localnet
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+// declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 // TODO: out-of-space errors (on dynamic stuff like strings)
 //   does this need to be handled explicitly?
@@ -18,6 +18,7 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 #[program]
 pub mod slide {
     use super::*;
+    use std::str::FromStr;
     pub fn initialize_user(
         ctx: Context<InitializeUser>,
         username: String,
@@ -293,13 +294,6 @@ pub mod slide {
             return err!(SlideError::InvalidProposal);
         }
 
-        // need to do a full parse of the description...
-        // could be regex?
-        // or strict byte/char offsets
-        if !proposal.description.starts_with("[SLIDEPROPOSAL]") {
-            return err!(SlideError::InvalidProposal);
-        }
-
         let pass_votes = *proposal.votes.get(0).unwrap();
         let fail_votes = *proposal.votes.get(1).unwrap();
         if pass_votes < fail_votes {
@@ -330,10 +324,46 @@ pub mod slide {
             return err!(SlideError::InvalidProposal);
         }
 
+        // title should start with [SLIDE PROPOSAL]
+        // description
+        // first line:
+        //   starts with "member: "
+        //   rest of line should parse to a publickey matching member
+        // second line:
+        //   starts with "role: "
+        //   rest of line should match "reviewer" or "admin"
+        if !proposal.title.starts_with("[SLIDE PROPOSAL]") {
+            return err!(SlideError::FailedToParseProposal);
+        }
+
+        let mut description_lines = proposal.description.lines();
+        let first_line = description_lines
+            .next()
+            .ok_or(SlideError::FailedToParseProposal)?;
+        require!(
+            first_line.starts_with("member: "),
+            SlideError::FailedToParseProposal
+        );
+        let member_pubkey =
+            Pubkey::from_str(&first_line[8..]).map_err(|_| SlideError::FailedToParseProposal)?;
+        require!(member_pubkey == member.key(), SlideError::InvalidProposal);
+        let second_line = description_lines
+            .next()
+            .ok_or(SlideError::FailedToParseProposal)?;
+        require!(
+            second_line.starts_with("role: "),
+            SlideError::FailedToParseProposal
+        );
+        let role = match second_line[6..].trim_end() {
+            "reviewer" => Role::Reviewer,
+            "admin" => Role::Admin,
+            _ => return err!(SlideError::FailedToParseProposal),
+        };
+
         access_record.bump = *ctx.bumps.get("access_record").unwrap();
-        access_record.user = member.key();
+        access_record.user = member_pubkey;
         access_record.expense_manager = expense_manager.key();
-        access_record.role = Role::Reviewer;
+        access_record.role = role;
 
         proposal_execution.proposal = proposal.key();
         let clock = Clock::get()?;
@@ -363,13 +393,6 @@ pub mod slide {
             return err!(SlideError::InvalidProposal);
         }
 
-        // need to do a full parse of the description...
-        // could be regex?
-        // or strict byte/char offsets
-        if !proposal.description.starts_with("[SLIDEPROPOSAL]") {
-            return err!(SlideError::InvalidProposal);
-        }
-
         let pass_votes = *proposal.votes.get(0).unwrap();
         let fail_votes = *proposal.votes.get(1).unwrap();
         if pass_votes < fail_votes {
@@ -400,6 +423,60 @@ pub mod slide {
             return err!(SlideError::InvalidProposal);
         }
 
+        // title should start with [SLIDE PROPOSAL]
+        // description
+        // first line:
+        //   starts with "lamports: "
+        //   rest of line should parse to a number of lamports <= (manager - rent exempt)
+        // second line:
+        //   starts with "manager: "
+        //   rest of line should parse to a publickey matching expense_manager
+        // third line:
+        //   starts with "treasury: "
+        //   rest of line should parse to a publickey matching squad_treasury
+        if !proposal.title.starts_with("[SLIDE PROPOSAL]") {
+            return err!(SlideError::FailedToParseProposal);
+        }
+
+        let mut description_lines = proposal.description.lines();
+        let first_line = description_lines
+            .next()
+            .ok_or(SlideError::FailedToParseProposal)?;
+        require!(
+            first_line.starts_with("lamports: "),
+            SlideError::FailedToParseProposal
+        );
+        let withdraw_lamports = first_line[10..]
+            .trim_end()
+            .parse::<u64>()
+            .map_err(|_| SlideError::FailedToParseProposal)?;
+        let second_line = description_lines
+            .next()
+            .ok_or(SlideError::FailedToParseProposal)?;
+        require!(
+            second_line.starts_with("manager: "),
+            SlideError::FailedToParseProposal
+        );
+        let manager_pubkey = Pubkey::from_str(second_line[9..].trim_end())
+            .map_err(|_| SlideError::FailedToParseProposal)?;
+        require!(
+            manager_pubkey == expense_manager.key(),
+            SlideError::FailedToParseProposal
+        );
+        let third_line = description_lines
+            .next()
+            .ok_or(SlideError::FailedToParseProposal)?;
+        require!(
+            third_line.starts_with("treasury: "),
+            SlideError::FailedToParseProposal
+        );
+        let treasury_pubkey = Pubkey::from_str(third_line[10..].trim_end())
+            .map_err(|_| SlideError::FailedToParseProposal)?;
+        require!(
+            treasury_pubkey == squad_treasury.key(),
+            SlideError::FailedToParseProposal
+        );
+
         let manager_info = expense_manager.to_account_info();
         let squad_treasury_info = squad_treasury.to_account_info();
 
@@ -410,11 +487,15 @@ pub mod slide {
         let rent = Rent::get()?;
         let rent_exempt_lamports = rent.minimum_balance(manager_info.data_len()).max(1);
 
-        let withdrawal_amount = manager_balance.checked_sub(rent_exempt_lamports).unwrap();
+        let max_withdrawal_amount = manager_balance.checked_sub(rent_exempt_lamports).unwrap();
+        require!(
+            withdraw_lamports <= max_withdrawal_amount,
+            SlideError::ManagerInsufficientFunds
+        );
 
-        **manager_balance = manager_balance.checked_sub(withdrawal_amount).unwrap();
+        **manager_balance = manager_balance.checked_sub(withdraw_lamports).unwrap();
         **squad_treasury_balance = squad_treasury_balance
-            .checked_add(withdrawal_amount)
+            .checked_add(withdraw_lamports)
             .unwrap();
 
         proposal_execution.proposal = proposal.key();

@@ -147,8 +147,7 @@ pub struct SquadsExecuteAccessProposal<'info> {
         seeds = [squad.key().as_ref(), &proposal.proposal_index.to_le_bytes(), b"!proposal"],
         bump,
         seeds::program = SQUADS_PROGRAM_ID,
-        constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType,
-        constraint = proposal.executed == false @ SlideError::ProposalAlreadyExecuted
+        constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType
     )]
     pub proposal: Box<Account<'info, Proposal>>,
     #[account(
@@ -200,8 +199,7 @@ pub struct SquadsExecuteWithdrawalProposal<'info> {
         seeds = [squad.key().as_ref(), &proposal.proposal_index.to_le_bytes(), b"!proposal"],
         bump,
         seeds::program = SQUADS_PROGRAM_ID,
-        constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType,
-        constraint = proposal.executed == false @ SlideError::ProposalAlreadyExecuted
+        constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType
     )]
     pub proposal: Box<Account<'info, Proposal>>,
     #[account(

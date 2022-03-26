@@ -58,6 +58,7 @@ pub struct SPLGovCreateAccessRecord<'info> {
     pub system_program: Program<'info, System>,
 }
 
+// TODO: should probably take the amount as an instruction parameter
 #[derive(Accounts)]
 #[instruction(realm: Pubkey)]
 pub struct SPLGovWithdrawFromExpenseManager<'info> {
@@ -75,7 +76,7 @@ pub struct SPLGovWithdrawFromExpenseManager<'info> {
         seeds::program = SPL_GOV_PROGRAM_ID
     )]
     pub governance_authority: Account<'info, Governance>,
-    /// CHECK: The seeds constraint is sufficient here, and the treasury does not need to sign
+    /// CHECK: The seeds constraint is sufficient here, and the treasury does not need to sign (governance already signed)
     #[account(
         mut,
         seeds = [b"native-treasury", governance_authority.key().as_ref()],

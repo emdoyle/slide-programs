@@ -22,6 +22,8 @@ pub enum SlideError {
     ProposalAlreadyExecuted,
     #[msg("Proposal has invalid data for execution")]
     InvalidProposal,
+    #[msg("Proposal body could not be parsed")]
+    FailedToParseProposal,
     #[msg("ExpensePackage is not owned by signer, or not related to provided expense manager")]
     PackageOwnershipMismatch,
     #[msg("ExpensePackage has already been submitted or is otherwise locked")]

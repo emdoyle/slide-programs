@@ -10,6 +10,7 @@ import { getBalance, signers, toBN } from "@slidexyz/slide-sdk/lib/utils";
 import {
   getAccessRecordAddressAndBump,
   getExpensePackageAddressAndBump,
+  getProposalExecutionAddressAndBump,
 } from "@slidexyz/slide-sdk/lib/address";
 import * as anchor from "@project-serum/anchor";
 import { createExpenseManager } from "./program_rpc";
@@ -21,6 +22,7 @@ import {
   withCreateProposalAccount,
   getMemberEquityAddressAndBump,
   withCastVote,
+  getSquadTreasuryAddressAndBump,
 } from "@slidexyz/squads-sdk";
 import { airdropToAccount, getFundedAccount } from "./utils";
 
@@ -74,8 +76,8 @@ async function createReviewerAccessProposal(
     squad,
     nonce,
     0,
-    "Reviewer Access",
-    `[SLIDEPROPOSAL]: This grants reviewer-level access in Slide to public key ${reviewer.toString()}`,
+    "[SLIDE PROPOSAL] Grant Permissions",
+    `member: ${reviewer.toString()}\nrole: reviewer`,
     2,
     ["Approve", "Deny"]
   );
@@ -91,9 +93,15 @@ async function createWithdrawalProposal(
   program: Program<Slide>,
   user: Keypair,
   squad: PublicKey,
-  nonce: number
+  expenseManager: PublicKey,
+  nonce: number,
+  lamports: number
 ) {
   let instructions = [];
+  const [squadTreasury] = await getSquadTreasuryAddressAndBump(
+    SQUADS_CUSTOM_DEVNET_PROGRAM_ID,
+    squad
+  );
   const { proposal } = await withCreateProposalAccount(
     instructions,
     SQUADS_CUSTOM_DEVNET_PROGRAM_ID,
@@ -101,8 +109,8 @@ async function createWithdrawalProposal(
     squad,
     nonce,
     0,
-    "Withdrawal",
-    "[SLIDEPROPOSAL]: This withdraws the balance of expense manager to the Squads SOL treasury",
+    "[SLIDE PROPOSAL] Withdrawal",
+    `lamports: ${lamports}\nmanager: ${expenseManager.toString()}\ntreasury: ${squadTreasury.toString()}`,
     2,
     ["Approve", "Deny"]
   );
@@ -350,6 +358,11 @@ describe("slide Squads integration tests", () => {
       expenseManager,
       reviewer.publicKey
     );
+    const [proposalExecution] = getProposalExecutionAddressAndBump(
+      program.programId,
+      expenseManager,
+      proposal
+    );
     await program.methods
       .squadsExecuteAccessProposal()
       .accounts({
@@ -358,6 +371,7 @@ describe("slide Squads integration tests", () => {
         expenseManager,
         squad,
         squadMint,
+        proposalExecution,
         member: reviewer.publicKey,
         signer: user.publicKey,
       })
@@ -530,13 +544,16 @@ describe("slide Squads integration tests", () => {
   });
   it("withdraws from expense manager", async () => {
     const { user, squad, squadSol, squadMint, expenseManager } = sharedData;
+    const withdrawalAmount = LAMPORTS_PER_SOL;
 
     // creates a free text proposal
     const { proposal } = await createWithdrawalProposal(
       program,
       user,
       squad,
-      2
+      expenseManager,
+      2,
+      withdrawalAmount
     );
 
     // casts a vote on the proposal
@@ -545,6 +562,11 @@ describe("slide Squads integration tests", () => {
     const treasuryBalancePre = await getBalance(connection, squadSol);
     const managerBalancePre = await getBalance(connection, expenseManager);
 
+    const [proposalExecution] = getProposalExecutionAddressAndBump(
+      program.programId,
+      expenseManager,
+      proposal
+    );
     await program.methods
       .squadsExecuteWithdrawalProposal()
       .accounts({
@@ -552,6 +574,7 @@ describe("slide Squads integration tests", () => {
         expenseManager,
         squad,
         squadMint,
+        proposalExecution,
         squadTreasury: squadSol,
         signer: user.publicKey,
       })
@@ -561,12 +584,7 @@ describe("slide Squads integration tests", () => {
     const treasuryBalancePost = await getBalance(connection, squadSol);
     const managerBalancePost = await getBalance(connection, expenseManager);
 
-    // packageQuantity is subtracted because one package was approved (reimbursed from manager)
-    const expectedWithdrawal =
-      2 * LAMPORTS_PER_SOL - packageQuantity.toNumber();
-    expect(managerBalancePre - managerBalancePost).to.equal(expectedWithdrawal);
-    expect(treasuryBalancePost - treasuryBalancePre).to.equal(
-      expectedWithdrawal
-    );
+    expect(managerBalancePre - managerBalancePost).to.equal(withdrawalAmount);
+    expect(treasuryBalancePost - treasuryBalancePre).to.equal(withdrawalAmount);
   });
 });
