@@ -5,17 +5,8 @@ use squads_program::state::squad::{Member, Squad as RawSquad};
 use std::collections::BTreeMap;
 use std::ops::Deref;
 
-// devnet
-// pub const SQUADS_PROGRAM_ID: Pubkey =
-//     solana_program::pubkey!("SQDSm7ifFqwmgxY5aL59BtHcBGHEgbg5thh4Y9ytdn3");
-
-// devnet manual deploy
 pub const SQUADS_PROGRAM_ID: Pubkey =
-    solana_program::pubkey!("3BgFvAdsYQsX7MfudNcXcLFizyy2XSBL3uuZeUysR2p7");
-
-// mainnet
-// pub const SQUADS_PROGRAM_ID: Pubkey =
-//     solana_program::pubkey!("SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT");
+    solana_program::pubkey!("SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT");
 
 pub struct Squad(RawSquad);
 

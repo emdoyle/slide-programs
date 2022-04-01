@@ -5,7 +5,7 @@
         "@solana/spl-token": "^0.2.0",
         "@solana/buffer-layout": "^4.0.0",
         "@slidexyz/slide-sdk": "^0.2.0",
-        "@slidexyz/squads-sdk": "^0.2.0"
+        "@slidexyz/squads-sdk": "^0.4.0"
     },
     "devDependencies": {
         "@types/mocha": "^9.0.0",
