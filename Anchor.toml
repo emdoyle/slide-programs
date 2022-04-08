@@ -15,20 +15,12 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 startup_wait = 15000
 
 [test.validator]
-url = "d"
+url = "https://api.devnet.solana.com"
 
 # SPL Governance shared Program
 [[test.validator.clone]]
 address = "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"
 
-# SPL Governance shared Program Data Address
-[[test.validator.clone]]
-address = "BZYjZ2ZbtAawP9WPt5yXszcoMWTvNFFX4AMbnDojtSGL"
-
 # Squads shared Program
 [[test.validator.clone]]
 address = "SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT"
-
-# Squads shared Program Data Address
-[[test.validator.clone]]
-address = "2SzQW4XUwVjqeovfFpPJEZDU3rxCEekgbzq2AfL2mxq6"

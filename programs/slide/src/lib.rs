@@ -77,6 +77,7 @@ pub mod slide {
     pub fn spl_gov_withdraw_from_expense_manager(
         ctx: Context<SPLGovWithdrawFromExpenseManager>,
         _realm: Pubkey,
+        withdrawal_amount: u64,
     ) -> Result<()> {
         let expense_manager = &mut ctx.accounts.expense_manager;
         let native_treasury = &mut ctx.accounts.native_treasury;
@@ -91,7 +92,12 @@ pub mod slide {
         let rent = Rent::get()?;
         let rent_exempt_lamports = rent.minimum_balance(manager_info.data_len()).max(1);
 
-        let withdrawal_amount = manager_balance.checked_sub(rent_exempt_lamports).unwrap();
+        let max_withdrawal = manager_balance.checked_sub(rent_exempt_lamports).unwrap();
+
+        require!(
+            withdrawal_amount <= max_withdrawal,
+            SlideError::ManagerInsufficientFunds
+        );
 
         **manager_balance = manager_balance.checked_sub(withdrawal_amount).unwrap();
         **native_treasury_balance = native_treasury_balance

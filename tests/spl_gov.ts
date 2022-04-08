@@ -1,5 +1,5 @@
 import { Slide } from "../target/types/slide";
-import { Program } from "@project-serum/anchor";
+import { BN, Program } from "@project-serum/anchor";
 import {
   Keypair,
   LAMPORTS_PER_SOL,
@@ -693,8 +693,9 @@ describe("slide SPL Governance integration tests", () => {
       governance,
       nativeTreasury,
     } = sharedData;
+    const withdrawalAmount = LAMPORTS_PER_SOL;
     const instruction: TransactionInstruction = await program.methods
-      .splGovWithdrawFromExpenseManager(realm)
+      .splGovWithdrawFromExpenseManager(realm, new BN(withdrawalAmount))
       .accounts({
         expenseManager,
         governanceAuthority: governance,
@@ -802,8 +803,6 @@ describe("slide SPL Governance integration tests", () => {
     const managerBalancePost = await getBalance(connection, expenseManager);
     const treasuryBalancePost = await getBalance(connection, nativeTreasury);
 
-    // packageQuantity is subtracted because one package was approved (reimbursed from manager)
-    const withdrawalAmount = 2 * LAMPORTS_PER_SOL - packageQuantity.toNumber();
     expect(managerBalancePre - managerBalancePost).to.equal(withdrawalAmount);
     expect(treasuryBalancePost - treasuryBalancePre).to.equal(withdrawalAmount);
   });
