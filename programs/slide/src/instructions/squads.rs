@@ -4,6 +4,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, TokenAccount};
 
 #[derive(Accounts)]
+#[instruction(external_program_id: Pubkey)]
 pub struct SquadsInitializeExpenseManager<'info> {
     #[account(
         mut,
@@ -14,7 +15,7 @@ pub struct SquadsInitializeExpenseManager<'info> {
     #[account(
         seeds = [member.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID,
+        seeds::program = external_program_id,
         constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
         constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
     )]
@@ -22,7 +23,7 @@ pub struct SquadsInitializeExpenseManager<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID
+        seeds::program = external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(mut)]
@@ -51,7 +52,7 @@ pub struct SquadsCreateExpensePackage<'info> {
     #[account(
         seeds = [owner.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID,
+        seeds::program = expense_manager.external_program_id,
         constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
         constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
     )]
@@ -59,7 +60,7 @@ pub struct SquadsCreateExpensePackage<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID
+        seeds::program = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(mut)]
@@ -87,7 +88,7 @@ pub struct SquadsUpdateExpensePackage<'info> {
     #[account(
         seeds = [owner.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID,
+        seeds::program = expense_manager.external_program_id,
         constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
         constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
     )]
@@ -95,7 +96,7 @@ pub struct SquadsUpdateExpensePackage<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID
+        seeds::program = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(mut)]
@@ -124,7 +125,7 @@ pub struct SquadsSubmitExpensePackage<'info> {
     #[account(
         seeds = [owner.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID,
+        seeds::program = expense_manager.external_program_id,
         constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
         constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
     )]
@@ -132,7 +133,7 @@ pub struct SquadsSubmitExpensePackage<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID
+        seeds::program = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(mut)]
@@ -146,7 +147,7 @@ pub struct SquadsExecuteAccessProposal<'info> {
     #[account(
         seeds = [squad.key().as_ref(), &proposal.proposal_index.to_le_bytes(), b"!proposal"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID,
+        seeds::program = expense_manager.external_program_id,
         constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType
     )]
     pub proposal: Box<Account<'info, Proposal>>,
@@ -175,13 +176,13 @@ pub struct SquadsExecuteAccessProposal<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID
+        seeds::program = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(
         seeds = [squad.key().as_ref(), b"!squadmint"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID
+        seeds::program = expense_manager.external_program_id
     )]
     pub squad_mint: Account<'info, Mint>,
     /// CHECK: Any address can be a member of a Squad
@@ -198,7 +199,7 @@ pub struct SquadsExecuteWithdrawalProposal<'info> {
     #[account(
         seeds = [squad.key().as_ref(), &proposal.proposal_index.to_le_bytes(), b"!proposal"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID,
+        seeds::program = expense_manager.external_program_id,
         constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType
     )]
     pub proposal: Box<Account<'info, Proposal>>,
@@ -220,20 +221,20 @@ pub struct SquadsExecuteWithdrawalProposal<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID
+        seeds::program = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(
         seeds = [squad.key().as_ref(), b"!squadmint"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID
+        seeds::program = expense_manager.external_program_id
     )]
     pub squad_mint: Account<'info, Mint>,
     #[account(
         mut,
         seeds = [squad.key().as_ref(), b"!squadsol"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID
+        seeds::program = expense_manager.external_program_id
     )]
     pub squad_treasury: SystemAccount<'info>,
     pub system_program: Program<'info, System>,
@@ -266,7 +267,7 @@ pub struct SquadsApproveExpensePackage<'info> {
     #[account(
         seeds = [authority.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID,
+        seeds::program = expense_manager.external_program_id,
         constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
         constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
     )]
@@ -274,7 +275,7 @@ pub struct SquadsApproveExpensePackage<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID
+        seeds::program = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(
@@ -309,7 +310,7 @@ pub struct SquadsDenyExpensePackage<'info> {
     #[account(
         seeds = [authority.key().as_ref(), squad.key().as_ref(), b"!memberequity"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID,
+        seeds::program = expense_manager.external_program_id,
         constraint = member_equity.mint == squad.mint_address @ SlideError::SquadMintMismatch,
         constraint = member_equity.amount > 0 @ SlideError::UserIsNotDAOMember
     )]
@@ -317,7 +318,7 @@ pub struct SquadsDenyExpensePackage<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = SQUADS_PROGRAM_ID
+        seeds::program = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(

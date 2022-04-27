@@ -273,7 +273,7 @@ describe("slide SPL Governance integration tests", () => {
     );
     await airdropToAccount(program, nativeTreasury);
     await program.methods
-      .splGovInitializeExpenseManager(realm)
+      .splGovInitializeExpenseManager(realm, SPL_GOV_PROGRAM_ID)
       .accounts({
         expenseManager: expenseManagerPDA,
         governanceAuthority: governance,
@@ -290,6 +290,7 @@ describe("slide SPL Governance integration tests", () => {
     sharedData.governance = governance;
     sharedData.nativeTreasury = nativeTreasury;
 
+    assert(expenseManager.externalProgramId.equals(SPL_GOV_PROGRAM_ID));
     assert(expenseManager.realm.equals(realm));
     assert(expenseManager.governanceAuthority.equals(governance));
   });

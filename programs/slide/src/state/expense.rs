@@ -10,6 +10,7 @@ pub struct ExpenseManager {
     pub squad: Option<Pubkey>,
     pub realm: Option<Pubkey>,
     pub governance_authority: Option<Pubkey>,
+    pub external_program_id: Pubkey,
 }
 
 impl ExpenseManager {
@@ -20,7 +21,8 @@ impl ExpenseManager {
     // squad: 33
     // realm: 33
     // governance_authority: 33
-    pub const MAX_SIZE: usize = 1 + 64 + 32 + 4 + 33 + 33 + 33;
+    // external_program_id: 32
+    pub const MAX_SIZE: usize = 1 + 64 + 32 + 4 + 33 + 33 + 33 + 32;
 }
 
 #[account]

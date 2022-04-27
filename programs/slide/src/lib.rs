@@ -50,10 +50,12 @@ pub mod slide {
     pub fn spl_gov_initialize_expense_manager(
         ctx: Context<SPLGovInitializeExpenseManager>,
         realm: Pubkey,
+        external_program_id: Pubkey,
     ) -> Result<()> {
         let governance_authority = &ctx.accounts.governance_authority;
         let expense_manager = &mut ctx.accounts.expense_manager;
 
+        expense_manager.external_program_id = external_program_id;
         expense_manager.realm = Some(realm);
         expense_manager.governance_authority = Some(governance_authority.key());
         Ok(())
@@ -220,10 +222,12 @@ pub mod slide {
     }
     pub fn squads_initialize_expense_manager(
         ctx: Context<SquadsInitializeExpenseManager>,
+        external_program_id: Pubkey,
     ) -> Result<()> {
         let expense_manager = &mut ctx.accounts.expense_manager;
         let squad = &ctx.accounts.squad;
 
+        expense_manager.external_program_id = external_program_id;
         expense_manager.squad = Some(squad.key());
 
         Ok(())

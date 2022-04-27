@@ -213,7 +213,7 @@ describe("slide Squads integration tests", () => {
       managerName
     );
     await program.methods
-      .squadsInitializeExpenseManager()
+      .squadsInitializeExpenseManager(SQUADS_PROGRAM_ID)
       .accounts({
         expenseManager,
         memberEquity: memberEquityRecord,
@@ -232,6 +232,7 @@ describe("slide Squads integration tests", () => {
 
     sharedData.expenseManager = expenseManager;
 
+    assert(expenseManagerData.externalProgramId.equals(SQUADS_PROGRAM_ID));
     assert(expenseManagerData.membershipTokenMint.equals(squadMint));
     assert(expenseManagerData.squad.equals(squad));
     expect(expenseManagerData.name).to.equal(managerName);
