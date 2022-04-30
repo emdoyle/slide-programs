@@ -10,14 +10,16 @@ pub struct SPLGovInitializeExpenseManager<'info> {
     #[account(
         seeds = [b"token-governance", realm.as_ref(), governance_authority.governed_account.as_ref()],
         bump,
-        seeds::program = external_program_id
+        seeds::program = external_program_id,
+        owner = external_program_id
     )]
     pub governance_authority: Account<'info, Governance>,
     #[account(
         seeds = [b"governance", realm.as_ref(), expense_manager.membership_token_mint.as_ref(), member.key().as_ref()],
         bump,
         seeds::program = external_program_id,
-        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember
+        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember,
+        owner = external_program_id
     )]
     pub token_owner_record: Account<'info, TokenOwnerRecord>,
     #[account(mut)]
@@ -45,7 +47,8 @@ pub struct SPLGovCreateAccessRecord<'info> {
         signer,
         seeds = [b"token-governance", realm.as_ref(), governance_authority.governed_account.as_ref()],
         bump,
-        seeds::program = expense_manager.external_program_id
+        seeds::program = expense_manager.external_program_id,
+        owner = expense_manager.external_program_id
     )]
     pub governance_authority: Account<'info, Governance>,
     #[account(
@@ -73,7 +76,8 @@ pub struct SPLGovWithdrawFromExpenseManager<'info> {
         signer,
         seeds = [b"token-governance", realm.as_ref(), governance_authority.governed_account.as_ref()],
         bump,
-        seeds::program = expense_manager.external_program_id
+        seeds::program = expense_manager.external_program_id,
+        owner = expense_manager.external_program_id
     )]
     pub governance_authority: Account<'info, Governance>,
     /// CHECK: The seeds constraint is sufficient here, and the treasury does not need to sign (governance already signed)
@@ -109,7 +113,8 @@ pub struct SPLGovCreateExpensePackage<'info> {
         seeds = [b"governance", realm.as_ref(), expense_manager.membership_token_mint.as_ref(), owner.key().as_ref()],
         bump,
         seeds::program = expense_manager.external_program_id,
-        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember
+        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember,
+        owner = expense_manager.external_program_id
     )]
     pub token_owner_record: Account<'info, TokenOwnerRecord>,
     #[account(mut)]
@@ -139,7 +144,8 @@ pub struct SPLGovUpdateExpensePackage<'info> {
         seeds = [b"governance", realm.as_ref(), expense_manager.membership_token_mint.as_ref(), owner.key().as_ref()],
         bump,
         seeds::program = expense_manager.external_program_id,
-        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember
+        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember,
+        owner = expense_manager.external_program_id
     )]
     pub token_owner_record: Account<'info, TokenOwnerRecord>,
     #[account(mut)]
@@ -169,7 +175,8 @@ pub struct SPLGovSubmitExpensePackage<'info> {
         seeds = [b"governance", realm.as_ref(), expense_manager.membership_token_mint.as_ref(), owner.key().as_ref()],
         bump,
         seeds::program = expense_manager.external_program_id,
-        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember
+        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember,
+        owner = expense_manager.external_program_id
     )]
     pub token_owner_record: Account<'info, TokenOwnerRecord>,
     #[account(mut)]
@@ -196,7 +203,8 @@ pub struct SPLGovApproveExpensePackage<'info> {
         seeds = [b"governance", realm.as_ref(), expense_manager.membership_token_mint.as_ref(), authority.key().as_ref()],
         bump,
         seeds::program = expense_manager.external_program_id,
-        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember
+        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember,
+        owner = expense_manager.external_program_id
     )]
     pub token_owner_record: Account<'info, TokenOwnerRecord>,
     #[account(
@@ -231,7 +239,8 @@ pub struct SPLGovDenyExpensePackage<'info> {
         seeds = [b"governance", realm.as_ref(), expense_manager.membership_token_mint.as_ref(), authority.key().as_ref()],
         bump,
         seeds::program = expense_manager.external_program_id,
-        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember
+        constraint = token_owner_record.governing_token_deposit_amount > 0 @ SlideError::UserIsNotDAOMember,
+        owner = expense_manager.external_program_id
     )]
     pub token_owner_record: Account<'info, TokenOwnerRecord>,
     #[account(

@@ -23,7 +23,8 @@ pub struct SquadsInitializeExpenseManager<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = external_program_id
+        seeds::program = external_program_id,
+        owner = external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(mut)]
@@ -60,7 +61,8 @@ pub struct SquadsCreateExpensePackage<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = expense_manager.external_program_id
+        seeds::program = expense_manager.external_program_id,
+        owner = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(mut)]
@@ -96,7 +98,8 @@ pub struct SquadsUpdateExpensePackage<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = expense_manager.external_program_id
+        seeds::program = expense_manager.external_program_id,
+        owner = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(mut)]
@@ -133,7 +136,8 @@ pub struct SquadsSubmitExpensePackage<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = expense_manager.external_program_id
+        seeds::program = expense_manager.external_program_id,
+        owner = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(mut)]
@@ -148,7 +152,8 @@ pub struct SquadsExecuteAccessProposal<'info> {
         seeds = [squad.key().as_ref(), &proposal.proposal_index.to_le_bytes(), b"!proposal"],
         bump,
         seeds::program = expense_manager.external_program_id,
-        constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType
+        constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType,
+        owner = expense_manager.external_program_id
     )]
     pub proposal: Box<Account<'info, Proposal>>,
     #[account(
@@ -176,7 +181,8 @@ pub struct SquadsExecuteAccessProposal<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = expense_manager.external_program_id
+        seeds::program = expense_manager.external_program_id,
+        owner = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(
@@ -200,7 +206,8 @@ pub struct SquadsExecuteWithdrawalProposal<'info> {
         seeds = [squad.key().as_ref(), &proposal.proposal_index.to_le_bytes(), b"!proposal"],
         bump,
         seeds::program = expense_manager.external_program_id,
-        constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType
+        constraint = proposal.proposal_type == 0 @ SlideError::WrongProposalType,
+        owner = expense_manager.external_program_id
     )]
     pub proposal: Box<Account<'info, Proposal>>,
     #[account(
@@ -221,7 +228,8 @@ pub struct SquadsExecuteWithdrawalProposal<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = expense_manager.external_program_id
+        seeds::program = expense_manager.external_program_id,
+        owner = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(
@@ -275,7 +283,8 @@ pub struct SquadsApproveExpensePackage<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = expense_manager.external_program_id
+        seeds::program = expense_manager.external_program_id,
+        owner = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(
@@ -318,7 +327,8 @@ pub struct SquadsDenyExpensePackage<'info> {
     #[account(
         seeds = [squad.admin.as_ref(), squad.random_id.as_bytes(), b"!squad"],
         bump,
-        seeds::program = expense_manager.external_program_id
+        seeds::program = expense_manager.external_program_id,
+        owner = expense_manager.external_program_id
     )]
     pub squad: Box<Account<'info, Squad>>,
     #[account(

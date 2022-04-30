@@ -4,9 +4,6 @@ use spl_governance::state::governance::GovernanceV2;
 use spl_governance::state::token_owner_record::TokenOwnerRecordV2;
 use std::ops::Deref;
 
-pub const SPL_GOV_PROGRAM_ID: Pubkey =
-    solana_program::pubkey!("GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw");
-
 // TODO:
 //   when deserializing,
 //   need to check the account discriminator to determine if the data is v1 or v2
@@ -26,12 +23,6 @@ impl anchor_lang::AccountDeserialize for TokenOwnerRecord {
 
 impl anchor_lang::AccountSerialize for TokenOwnerRecord {}
 
-impl anchor_lang::Owner for TokenOwnerRecord {
-    fn owner() -> Pubkey {
-        SPL_GOV_PROGRAM_ID
-    }
-}
-
 impl Deref for TokenOwnerRecord {
     type Target = TokenOwnerRecordV2;
 
@@ -50,12 +41,6 @@ impl anchor_lang::AccountDeserialize for Governance {
 }
 
 impl anchor_lang::AccountSerialize for Governance {}
-
-impl anchor_lang::Owner for Governance {
-    fn owner() -> Pubkey {
-        SPL_GOV_PROGRAM_ID
-    }
-}
 
 impl Deref for Governance {
     type Target = GovernanceV2;

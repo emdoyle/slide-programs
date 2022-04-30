@@ -5,9 +5,6 @@ use squads_program::state::squad::{Member, Squad as RawSquad};
 use std::collections::BTreeMap;
 use std::ops::Deref;
 
-pub const SQUADS_PROGRAM_ID: Pubkey =
-    solana_program::pubkey!("SQUADSxWKud1RVxuhJzNcqYqu7F3GLNiktGzjnNtriT");
-
 pub struct Squad(RawSquad);
 
 impl Deref for Squad {
@@ -72,12 +69,6 @@ impl Clone for Squad {
             // reserved for future updates
             reserved: self.0.reserved,
         })
-    }
-}
-
-impl anchor_lang::Owner for Squad {
-    fn owner() -> Pubkey {
-        SQUADS_PROGRAM_ID
     }
 }
 
@@ -146,12 +137,6 @@ impl Clone for Proposal {
             // reserved for future updates
             reserved: self.0.reserved,
         })
-    }
-}
-
-impl anchor_lang::Owner for Proposal {
-    fn owner() -> Pubkey {
-        SQUADS_PROGRAM_ID
     }
 }
 
