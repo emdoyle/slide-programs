@@ -16,8 +16,8 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = "0.24.2"
-anchor-spl = "0.24.2"
+anchor-lang = { git = "https://github.com/emdoyle/anchor", branch = "dynamic-owner" }
+anchor-spl = { git = "https://github.com/emdoyle/anchor", branch = "dynamic-owner" }
 solana-program = "1.9.13"
 spl-governance = { version = "2.2.2", features = ["no-entrypoint"] }
 squads-program = { version = "2.0.1", features = ["no-entrypoint"] }
