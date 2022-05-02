@@ -50,6 +50,7 @@ pub mod slide {
     pub fn spl_gov_initialize_expense_manager(
         ctx: Context<SPLGovInitializeExpenseManager>,
         realm: Pubkey,
+        governance_type: GovernanceType,
         external_program_id: Pubkey,
     ) -> Result<()> {
         let governance_authority = &ctx.accounts.governance_authority;
@@ -58,6 +59,7 @@ pub mod slide {
         expense_manager.external_program_id = external_program_id;
         expense_manager.realm = Some(realm);
         expense_manager.governance_authority = Some(governance_authority.key());
+        expense_manager.governance_type = Some(governance_type);
         Ok(())
     }
     pub fn spl_gov_create_access_record(

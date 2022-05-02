@@ -49,3 +49,28 @@ impl Deref for Governance {
         &self.0
     }
 }
+
+#[derive(Debug, AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+pub enum GovernanceType {
+    Account,
+    Token,
+    Mint,
+    Program,
+}
+
+impl Default for GovernanceType {
+    fn default() -> Self {
+        Self::Account
+    }
+}
+
+impl GovernanceType {
+    pub fn seed_prefix(&self) -> String {
+        match self {
+            GovernanceType::Account => String::from("account-governance"),
+            GovernanceType::Token => String::from("token-governance"),
+            GovernanceType::Mint => String::from("mint-governance"),
+            GovernanceType::Program => String::from("program-governance"),
+        }
+    }
+}

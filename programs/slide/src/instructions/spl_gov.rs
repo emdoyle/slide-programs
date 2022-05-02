@@ -3,12 +3,12 @@ use crate::utils::*;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-#[instruction(realm: Pubkey, external_program_id: Pubkey)]
+#[instruction(realm: Pubkey, governance_type: GovernanceType, external_program_id: Pubkey)]
 pub struct SPLGovInitializeExpenseManager<'info> {
     #[account(mut, seeds = [b"expense-manager", expense_manager.name.as_bytes()], bump = expense_manager.bump)]
     pub expense_manager: Account<'info, ExpenseManager>,
     #[account(
-        seeds = [b"token-governance", realm.as_ref(), governance_authority.governed_account.as_ref()],
+        seeds = [governance_type.seed_prefix().as_bytes(), realm.as_ref(), governance_authority.governed_account.as_ref()],
         bump,
         seeds::program = external_program_id,
         owner = external_program_id
@@ -45,7 +45,11 @@ pub struct SPLGovCreateAccessRecord<'info> {
     pub expense_manager: Account<'info, ExpenseManager>,
     #[account(
         signer,
-        seeds = [b"token-governance", realm.as_ref(), governance_authority.governed_account.as_ref()],
+        seeds = [
+            expense_manager.governance_type.as_ref().unwrap().seed_prefix().as_bytes(),
+            realm.as_ref(),
+            governance_authority.governed_account.as_ref()
+        ],
         bump,
         seeds::program = expense_manager.external_program_id,
         owner = expense_manager.external_program_id
@@ -74,7 +78,11 @@ pub struct SPLGovWithdrawFromExpenseManager<'info> {
     pub expense_manager: Account<'info, ExpenseManager>,
     #[account(
         signer,
-        seeds = [b"token-governance", realm.as_ref(), governance_authority.governed_account.as_ref()],
+        seeds = [
+            expense_manager.governance_type.as_ref().unwrap().seed_prefix().as_bytes(),
+            realm.as_ref(),
+            governance_authority.governed_account.as_ref()
+        ],
         bump,
         seeds::program = expense_manager.external_program_id,
         owner = expense_manager.external_program_id

@@ -1,3 +1,4 @@
+use crate::GovernanceType;
 use anchor_lang::prelude::*;
 
 #[account]
@@ -11,6 +12,7 @@ pub struct ExpenseManager {
     pub realm: Option<Pubkey>,
     pub governance_authority: Option<Pubkey>,
     pub external_program_id: Pubkey,
+    pub governance_type: Option<GovernanceType>,
 }
 
 impl ExpenseManager {
@@ -22,7 +24,8 @@ impl ExpenseManager {
     // realm: 33
     // governance_authority: 33
     // external_program_id: 32
-    pub const MAX_SIZE: usize = 1 + 64 + 32 + 4 + 33 + 33 + 33 + 32;
+    // governance_type: 2
+    pub const MAX_SIZE: usize = 1 + 64 + 32 + 4 + 33 + 33 + 33 + 32 + 2;
 }
 
 #[account]

@@ -273,7 +273,7 @@ describe("slide SPL Governance integration tests", () => {
     );
     await airdropToAccount(program, nativeTreasury);
     await program.methods
-      .splGovInitializeExpenseManager(realm, SPL_GOV_PROGRAM_ID)
+      .splGovInitializeExpenseManager(realm, { token: {} }, SPL_GOV_PROGRAM_ID)
       .accounts({
         expenseManager: expenseManagerPDA,
         governanceAuthority: governance,
