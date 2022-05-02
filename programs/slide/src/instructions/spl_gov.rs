@@ -65,7 +65,6 @@ pub struct SPLGovCreateAccessRecord<'info> {
     pub system_program: Program<'info, System>,
 }
 
-// TODO: should probably take the amount as an instruction parameter
 #[derive(Accounts)]
 #[instruction(realm: Pubkey)]
 pub struct SPLGovWithdrawFromExpenseManager<'info> {

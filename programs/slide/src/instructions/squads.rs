@@ -144,8 +144,6 @@ pub struct SquadsSubmitExpensePackage<'info> {
     pub owner: Signer<'info>,
 }
 
-// TODO: member needs to be checked against the content of the proposal
-//   role should also come from proposal
 #[derive(Accounts)]
 pub struct SquadsExecuteAccessProposal<'info> {
     #[account(
