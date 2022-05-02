@@ -7,8 +7,10 @@ use instructions::*;
 use state::*;
 use utils::*;
 
+// mainnet
+declare_id!("SLfcUcri1hhkZpN5W3R4XBQW4Ka5u4vGsG7M5mWq9Xh");
 // devnet
-declare_id!("3nunqfARwEnmSGg5b9aDEWuBVQHHHhztRAXR4bM4CYCE");
+// declare_id!("3nunqfARwEnmSGg5b9aDEWuBVQHHHhztRAXR4bM4CYCE");
 // localnet
 // declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
